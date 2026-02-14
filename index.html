@@ -12,6 +12,12 @@
       background: linear-gradient(to bottom, #0f172a, #020617);
       color: white;
       text-align: center;
+      animation: fadeIn 1.2s ease-in;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
     }
 
     header {
@@ -26,3 +32,94 @@
     h2 {
       font-weight: normal;
       color: #cbd5e1;
+      margin: 5px 0;
+    }
+
+    .tagline {
+      margin-top: 15px;
+      font-size: 16px;
+      color: #94a3b8;
+    }
+
+    .section {
+      padding: 60px 20px;
+      border-top: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .btn {
+      display: inline-block;
+      margin-top: 15px;
+      padding: 10px 20px;
+      background: #2563eb;
+      border-radius: 6px;
+      color: white;
+      text-decoration: none;
+      transition: 0.3s ease;
+    }
+
+    .btn:hover {
+      background: #1d4ed8;
+      box-shadow: 0 0 15px rgba(56,189,248,0.5);
+    }
+
+    footer {
+      margin-top: 80px;
+      padding: 20px;
+      color: #94a3b8;
+      font-size: 14px;
+      border-top: 1px solid rgba(255,255,255,0.05);
+    }
+
+  </style>
+</head>
+
+<body>
+
+<header>
+  <h1>Ghouse Shaik</h1>
+  <h2>DevOps & Cloud Engineer</h2>
+  <h2>Kubernetes | Docker | AWS | CI/CD</h2>
+
+  <div class="tagline">
+    Automating infrastructure. Scaling systems. Engineering reliability.
+  </div>
+
+  <p style="margin-top:20px;">
+    Currently working at Reveal Data Private Limited<br>
+    Previously worked at Consilio LLP & EY (Ernst & Young LLP)
+  </p>
+
+  <div style="margin-top:20px;">
+    <a class="btn" href="https://github.com/ghouseshaik1272" target="_blank">GitHub</a>
+    <a class="btn" href="https://www.linkedin.com/in/ghouseshaik/" target="_blank">LinkedIn</a>
+  </div>
+</header>
+
+<div class="section">
+  <h2>🚀 Projects</h2>
+  <a class="btn" href="https://github.com/ghouseshaik1272" target="_blank">
+    View DevOps Projects
+  </a>
+</div>
+
+<div class="section">
+  <h2>📝 Blog</h2>
+  <a class="btn" href="https://multicloudnavigator.blogspot.com/" target="_blank">
+    Visit My Blog
+  </a>
+</div>
+
+<div class="section">
+  <h2>📺 YouTube Channel</h2>
+  <a class="btn" href="https://www.youtube.com/@DevopsbyGhouse-MCN" target="_blank">
+    DevOps by Ghouse
+  </a>
+</div>
+
+<footer>
+  Contact: ghouseshaik1272@gmail.com<br>
+  © 2026 Ghouse Shaik
+</footer>
+
+</body>
+</html>
