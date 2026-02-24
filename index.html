@@ -49,10 +49,6 @@
       font-size: 14px;
     }
 
-    .links a:hover {
-      text-decoration: underline;
-    }
-
     .experience {
       margin-top: 20px;
       font-size: 14px;
@@ -67,8 +63,8 @@
       display: flex;
       justify-content: center;
       gap: 20px;
-      flex-wrap: wrap;
       margin-top: 20px;
+      flex-wrap: nowrap;
     }
 
     .card {
@@ -129,8 +125,9 @@
 </header>
 
 <div class="section">
-  <div class="cards">
 
+  <!-- ROW 1 -->
+  <div class="cards">
     <a class="card" href="https://github.com/ghouseshaik1272" target="_blank">
       <h3>Projects</h3>
       <p>CI/CD pipelines, Kubernetes deployments and cloud infrastructure.</p>
@@ -145,7 +142,10 @@
       <h3>YouTube</h3>
       <p>Hands-on DevOps walkthroughs and infrastructure demonstrations.</p>
     </a>
+  </div>
 
+  <!-- ROW 2 -->
+  <div class="cards">
     <a class="card" href="https://aws.amazon.com/free/?trk=011f28e3-1dfa-405d-894f-3e05b14038a6&sc_channel=ps" target="_blank">
       <h3>AWS</h3>
       <p>AWS Free Tier resources and cloud learning platform.</p>
@@ -160,8 +160,8 @@
       <h3>Killercoda</h3>
       <p>Interactive Kubernetes and DevOps hands-on labs.</p>
     </a>
-
   </div>
+
 </div>
 
 <footer>
