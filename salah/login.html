@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#103c31"><title>Sign in — Salah Reminder</title>
+<style>
+:root{--green:#103c31;--green2:#1d604d;--cream:#f5f4ed;--ink:#182621;--muted:#75847c;--line:#e4e9e3;--gold:#e5b75b}*{box-sizing:border-box}body{margin:0;background:var(--cream);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh;display:grid;place-items:center;padding:24px}.shell{width:min(100%,420px)}.brand{display:flex;align-items:center;justify-content:space-between;background:var(--green);color:white;padding:17px 19px;border-radius:18px;margin-bottom:24px;font-weight:750;font-size:19px}.brand a{color:#d6e6dd;text-decoration:none;font-size:13px;font-weight:550}.brand b{color:var(--gold)}.panel{background:white;border:1px solid var(--line);border-radius:22px;padding:25px;box-shadow:0 10px 28px #1826210a}.eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:700}.panel h1{font-size:27px;line-height:1.16;margin:8px 0}.sub{color:var(--muted);font-size:14px;margin:0 0 23px}.field-label{display:block;font-size:13px;font-weight:700;margin:0 0 7px}.phone{display:flex;gap:8px}.country{width:78px;border:1px solid var(--line);border-radius:12px;padding:12px 10px;font:600 15px system-ui;background:#fff}.field{width:100%;border:1px solid var(--line);border-radius:12px;padding:13px 12px;font:500 16px system-ui;color:var(--ink);background:white}.field:focus,.country:focus{outline:2px solid #79a997;outline-offset:2px}.hint{font-size:12px;color:var(--muted);margin:8px 0 18px}.btn{border:0;border-radius:13px;padding:14px 16px;background:var(--green);color:white;font-size:15px;font-weight:700;width:100%;cursor:pointer}.btn:disabled{opacity:.55;cursor:not-allowed}.btn.secondary{margin-top:9px;background:#edf4ef;color:var(--green)}.back{display:inline-block;color:var(--green2);font-size:13px;font-weight:650;text-decoration:none;margin:0 0 16px}.note{margin-top:15px;background:#f5f8f5;border-radius:12px;padding:11px 12px;color:#62746a;font-size:12px}.error{color:#a53737;font-size:13px;min-height:20px;margin:7px 0}.hide{display:none!important}.otp{letter-spacing:8px;text-align:center;font-size:22px;font-weight:700}.privacy{text-align:center;font-size:12px;color:var(--muted);margin:15px 0 0}#recaptcha-container{margin:14px 0 4px;min-height:0;overflow:hidden}.consent{display:flex;align-items:flex-start;gap:9px;margin:12px 0;font-size:12px;line-height:1.4;color:#62746a}.consent input{margin-top:2px;accent-color:var(--green)}
+</style>
+</head>
+<body>
+<main class="shell">
+<div class="brand"><span>Salah<b>•</b></span><a href="../index.html">DevOps by Ghouse</a></div>
+<a class="back" href="../index.html">← Back to home</a>
+<section class="panel">
+<div class="eyebrow">Your salah companion</div>
+<div id="phoneStep">
+<h1>Sign in with your phone</h1><p class="sub">Enter your number and we’ll text you a one-time verification code.</p>
+<label class="field-label" for="number">Mobile number</label>
+<div class="phone"><input class="country" id="country" aria-label="Country code" value="+91" maxlength="5"><input class="field" id="number" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="Enter mobile number" maxlength="15"></div>
+<p class="hint">Use international format. For India, keep +91 selected and enter your 10-digit number.</p>
+<div id="recaptcha-container"></div>
+<label class="consent"><input id="consent" type="checkbox"> <span>I agree to use my phone number for sign-in. Firebase (Google) processes it to send the verification SMS and help prevent abuse.</span></label><div class="error" id="phoneError" role="alert" aria-live="polite"></div>
+<button class="btn" id="send" type="button" disabled>Send me an OTP</button>
+<div class="note">Your phone number is used for sign-in. Standard SMS charges may apply. By continuing, you agree to receive a verification message.</div>
+</div>
+<div id="otpStep" class="hide">
+<h1>Enter your OTP</h1><p class="sub">We sent a verification code to <strong id="masked"></strong>.</p>
+<label class="field-label" for="code">Verification code</label>
+<input class="field otp" id="code" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="6-digit code" maxlength="6">
+<div class="error" id="otpError" role="alert" aria-live="polite"></div>
+<button class="btn" id="verify" type="button">Verify and continue</button>
+<button class="btn secondary" id="resend" type="button">Send a new code</button>
+<button class="btn secondary" id="edit" type="button">Change phone number</button>
+</div>
+</section>
+<p class="privacy">A gentle reminder for the Ummah 🤍</p>
+</main>
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js';
+import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js';
+import { firebaseConfig } from './firebase-config.js';
+
+const configured = !Object.values(firebaseConfig).some(value => value.startsWith('REPLACE_'));
+const phoneStep = document.querySelector('#phoneStep');
+const otpStep = document.querySelector('#otpStep');
+const numberInput = document.querySelector('#number');
+const countryInput = document.querySelector('#country');
+const sendButton = document.querySelector('#send');
+const phoneError = document.querySelector('#phoneError');
+const otpError = document.querySelector('#otpError');
+let confirmationResult = null;
+let recaptchaVerifier = null;
+let auth = null;
+
+function setError(el, message) { el.textContent = message; }
+function fullPhoneNumber() {
+  const country = countryInput.value.trim();
+  const number = numberInput.value.replace(/\D/g, '');
+  if (!/^\+[1-9]\d{0,3}$/.test(country) || number.length < 6 || number.length > 14) return '';
+  return country + number;
+}
+function setupRecaptcha() {
+  if (recaptchaVerifier) recaptchaVerifier.clear();
+  recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', { size: 'normal' });
+  return recaptchaVerifier.render();
+}
+
+if (configured) {
+  try {
+    const app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    auth.languageCode = 'en';
+    setupRecaptcha().then(() => { sendButton.disabled = false; }).catch(() => {
+      setError(phoneError, 'reCAPTCHA could not load. Check your Firebase domain settings and reload.');
+    });
+  } catch (error) {
+    setError(phoneError, 'Firebase setup failed. Check the project configuration in this file.');
+  }
+} else {
+  setError(phoneError, 'Add your Firebase Web app config in login.html to enable real OTP sign-in.');
+}
+
+async function sendOtp() {
+  setError(phoneError, '');
+  const phoneNumber = fullPhoneNumber();
+  if (!phoneNumber) { setError(phoneError, 'Enter a valid phone number with its country code.'); return; }
+  if (!document.querySelector('#consent').checked) { setError(phoneError, 'Please agree to phone sign-in before continuing.'); return; }
+  sendButton.disabled = true;
+  sendButton.textContent = 'Sending code…';
+  try {
+    confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier);
+    document.querySelector('#masked').textContent = phoneNumber.replace(/(\+\d{1,3})\d+(\d{2})$/, '$1 •••••• $2');
+    phoneStep.classList.add('hide');
+    otpStep.classList.remove('hide');
+    document.querySelector('#code').focus();
+  } catch (error) {
+    setError(phoneError, error.code === 'auth/too-many-requests'
+      ? 'Too many attempts. Please wait before requesting another code.'
+      : 'Could not send the OTP. Check the number, reCAPTCHA, Firebase setup, and SMS region settings.');
+    try { await setupRecaptcha(); } catch (_) {}
+    sendButton.disabled = false;
+  } finally {
+    sendButton.textContent = 'Send me an OTP';
+  }
+}
+
+sendButton.addEventListener('click', sendOtp);
+document.querySelector('#resend').addEventListener('click', async () => {
+  otpStep.classList.add('hide');
+  phoneStep.classList.remove('hide');
+  document.querySelector('#code').value = '';
+  await setupRecaptcha();
+  sendButton.disabled = false;
+  sendOtp();
+});
+document.querySelector('#edit').addEventListener('click', async () => {
+  otpStep.classList.add('hide');
+  phoneStep.classList.remove('hide');
+  document.querySelector('#code').value = '';
+  setError(phoneError, '');
+  await setupRecaptcha();
+  sendButton.disabled = false;
+});
+document.querySelector('#verify').addEventListener('click', async () => {
+  const code = document.querySelector('#code').value.trim();
+  if (!/^\d{6}$/.test(code)) { setError(otpError, 'Enter the 6-digit code from your SMS.'); return; }
+  const button = document.querySelector('#verify');
+  button.disabled = true;
+  setError(otpError, '');
+  try {
+    const credential = await confirmationResult.confirm(code);
+    localStorage.setItem('salah-auth-user', credential.user.uid);
+    location.href = 'index.html';
+  } catch (error) {
+    setError(otpError, 'That code did not verify. Check it and try again.');
+    button.disabled = false;
+  }
+});
+</script>
+</body>
+</html>
+
+
+
+
+
+
