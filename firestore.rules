@@ -4,8 +4,8 @@ service cloud.firestore {
     function signedIn() { return request.auth != null; }
     function isAdmin() {
       return signedIn()
-        && exists(/databases/$(database)/documents/admins/$(request.auth.uid))
-        && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'admin';
+        && request.auth.token.email == 'ghouseshaik1272@gmail.com'
+        && request.auth.token.email_verified == true;
     }
     function validTimes(times) {
       return times is list && times.size() == 5
@@ -79,3 +79,4 @@ service cloud.firestore {
     }
   }
 }
+
