@@ -5,7 +5,7 @@
 <script type="module">
 import{initializeApp}from'https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js';
 import{getAuth,sendSignInLinkToEmail,isSignInWithEmailLink,signInWithEmailLink,updateProfile}from'https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js';
-import{getFirestore,doc,getDoc,setDoc,serverTimestamp}from'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
+import{getFirestore,doc,getDoc,setDoc,updateDoc,serverTimestamp}from'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
 import{firebaseConfig}from'./firebase-config.js';
 const errorEl=document.querySelector('#error'),buttons=[...document.querySelectorAll('.btn')],nameEl=document.querySelector('#name'),emailEl=document.querySelector('#email'),consent=document.querySelector('#consent'),adminEmail='shaikdigitalservicespvtltd@gmail.com';
 const configured=!Object.values(firebaseConfig).some(v=>typeof v!=='string'||v.startsWith('REPLACE_'));
@@ -20,13 +20,13 @@ if(!configured){errorEl.textContent='Firebase setup is not finished yet. Please 
    const email=localStorage.getItem('salah-email-link')||prompt('Enter the email address where you received the sign-in link:');
    if(!email){errorEl.textContent='Enter your email address to finish sign-in.'}
    else{buttons.forEach(b=>b.disabled=true);errorEl.style.color='#62746a';errorEl.textContent='Verifying your email…';try{
-     const credential=await signInWithEmailLink(auth,email,location.href);await credential.user.reload();const user=auth.currentUser,intent=localStorage.getItem('salah-email-intent'),ref=profileRef(user.uid),snap=await getDoc(ref);
+     const credential=await signInWithEmailLink(auth,email,location.href);await credential.user.reload();const user=auth.currentUser,intent=localStorage.getItem('salah-email-intent'),isAdmin=(user.email||'').toLowerCase()===adminEmail&&user.emailVerified,ref=profileRef(user.uid);let snap=await getDoc(ref);
      if(!snap.exists()){
-       if(intent!=='register'){await auth.signOut();throw new Error('No approved account was found. Choose “Ask for approval” to request access.')}
-       const name=localStorage.getItem('salah-pending-name')||'Member';await updateProfile(user,{displayName:name});await setDoc(ref,{uid:user.uid,name,email:user.email,prayerTimes:['','','','',''],tone:'gentle',hasInitialTimes:false,editMonthStart:null,editsUsed:0,approvalStatus:'pending',approvalRequestedAt:serverTimestamp(),approvalReviewedAt:null,approvalReviewedBy:null,createdAt:serverTimestamp(),lastActiveAt:serverTimestamp()});errorEl.textContent=`JazakAllahu khairan, ${name}. Your request is waiting for admin approval. You’ll be able to sign in when it’s approved.`;localStorage.removeItem('salah-email-intent');localStorage.removeItem('salah-pending-name');localStorage.removeItem('salah-email-link');buttons.forEach(b=>b.disabled=false);return
+       if(intent!=='register'&&!isAdmin){await auth.signOut();throw new Error('No approved account was found. Choose “Ask for approval” to request access.')}
+       const name=localStorage.getItem('salah-pending-name')||user.displayName||(isAdmin?'Admin':'Member');if(!user.displayName)await updateProfile(user,{displayName:name});await setDoc(ref,{uid:user.uid,name,email:user.email,prayerTimes:['','','','',''],tone:'gentle',hasInitialTimes:false,editMonthStart:null,editsUsed:0,approvalStatus:'pending',approvalRequestedAt:serverTimestamp(),approvalReviewedAt:null,approvalReviewedBy:null,createdAt:serverTimestamp(),lastActiveAt:serverTimestamp()});snap=await getDoc(ref);
+       if(!isAdmin){errorEl.textContent=`JazakAllahu khairan, ${name}. Your request is waiting for admin approval. You’ll be able to sign in when it’s approved.`;localStorage.removeItem('salah-email-intent');localStorage.removeItem('salah-pending-name');localStorage.removeItem('salah-email-link');buttons.forEach(b=>b.disabled=false);return}
      }
-     const profile=snap.data();if(profile.approvalStatus==='pending'){errorEl.textContent='Your request is awaiting admin approval. Please try again later.';buttons.forEach(b=>b.disabled=false);return}if(profile.approvalStatus==='rejected'){errorEl.textContent='Your access request was declined. Contact the Salah administrator.';buttons.forEach(b=>b.disabled=false);return}
-     if((user.email||'').toLowerCase()===adminEmail&&!user.emailVerified){errorEl.textContent='Verify the admin email address before continuing.';return}
+     const profile=snap.data();if(isAdmin&&profile.approvalStatus==='pending'){await updateDoc(ref,{approvalStatus:'approved',approvalReviewedAt:serverTimestamp(),approvalReviewedBy:adminEmail});profile.approvalStatus='approved'}if(profile.approvalStatus==='pending'){errorEl.textContent='Your request is awaiting admin approval. Please try again later.';buttons.forEach(b=>b.disabled=false);return}if(profile.approvalStatus==='rejected'){errorEl.textContent='Your access request was declined. Contact the Salah administrator.';buttons.forEach(b=>b.disabled=false);return}
      localStorage.removeItem('salah-email-intent');localStorage.removeItem('salah-pending-name');localStorage.removeItem('salah-email-link');location.replace('index.html')
    }catch(e){errorEl.style.color='#a53737';errorEl.textContent=e.message||message(e);buttons.forEach(b=>b.disabled=false)}}
  }
