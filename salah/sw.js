@@ -1,4 +1,4 @@
-const CACHE = 'salah-shell-v1';
+const CACHE = 'salah-shell-v2';
 const SHELL = ['./', './login.html', './index.html', './admin.html', './main.js', './firebase-config.js', './push-config.js', './manifest.webmanifest', './icon.svg'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()));
@@ -28,3 +28,4 @@ self.addEventListener('notificationclick', event => {
     return self.clients.openWindow(target);
   }));
 });
+
