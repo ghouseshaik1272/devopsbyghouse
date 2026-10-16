@@ -4,8 +4,13 @@ service cloud.firestore {
     function signedIn() { return request.auth != null; }
     function isAdmin() {
       return signedIn()
-        && request.auth.token.email == 'ghouseshaik1272@gmail.com'
+        && request.auth.token.email == 'shaikdigitalservicespvtltd@gmail.com'
         && request.auth.token.email_verified == true;
+    }
+    function approved(uid) {
+      let profile = get(/databases/$(database)/documents/users/$(uid)).data;
+      return !('approvalStatus' in profile)
+        || (profile.approvalStatus != 'pending' && profile.approvalStatus != 'rejected');
     }
     function validTimes(times) {
       return times is list && times.size() == 5
@@ -16,12 +21,13 @@ service cloud.firestore {
         && times[4] is string && (times[4] == '' || times[4].matches('^([01][0-9]|2[0-3]):[0-5][0-9]$'));
     }
     function validProfile(data, uid) {
-      return data.keys().hasOnly(['uid','name','email','prayerTimes','tone','hasInitialTimes','editMonthStart','editsUsed','createdAt','lastActiveAt'])
+      return data.keys().hasOnly(['uid','name','email','prayerTimes','tone','hasInitialTimes','editMonthStart','editsUsed','approvalStatus','approvalRequestedAt','approvalReviewedAt','approvalReviewedBy','createdAt','lastActiveAt'])
         && data.uid == uid && data.name is string && data.name.size() <= 100
         && data.email is string && data.email == request.auth.token.email && data.email.size() <= 254
-        && validTimes(data.prayerTimes)
-        && data.tone in ['gentle','bell','adhan']
+        && validTimes(data.prayerTimes) && data.tone in ['gentle','bell','adhan']
         && data.hasInitialTimes is bool && data.editsUsed is int
+        && data.approvalStatus == 'pending' && data.approvalRequestedAt == request.time
+        && data.approvalReviewedAt == null && data.approvalReviewedBy == null
         && data.createdAt == request.time && data.lastActiveAt == request.time;
     }
     function currentMonthStart() { return timestamp.date(request.time.year(), request.time.month(), 1); }
@@ -38,8 +44,7 @@ service cloud.firestore {
             && request.resource.data.prayerTimes[0] != '' && request.resource.data.prayerTimes[1] != ''
             && request.resource.data.prayerTimes[2] != '' && request.resource.data.prayerTimes[3] != ''
             && request.resource.data.prayerTimes[4] != ''
-            && request.resource.data.editsUsed == 0
-            && request.resource.data.editMonthStart == currentMonthStart()
+            && request.resource.data.editsUsed == 0 && request.resource.data.editMonthStart == currentMonthStart()
           : request.resource.data.hasInitialTimes == true
             && request.resource.data.editMonthStart == currentMonthStart()
             && request.resource.data.editsUsed == (currentMonth ? resource.data.editsUsed + 1 : 1)
@@ -49,28 +54,31 @@ service cloud.firestore {
       allow get: if signedIn() && (request.auth.uid == uid || isAdmin());
       allow list: if isAdmin();
       allow create: if signedIn() && request.auth.uid == uid
+        && request.auth.token.email_verified == true
         && validProfile(request.resource.data, uid)
         && request.resource.data.hasInitialTimes == false
-        && request.resource.data.editMonthStart == null
-        && request.resource.data.editsUsed == 0;
-      allow update: if signedIn() && request.auth.uid == uid
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name','email','prayerTimes','tone','hasInitialTimes','editMonthStart','editsUsed','lastActiveAt'])
-        && request.resource.data.uid == resource.data.uid
-        && request.resource.data.createdAt == resource.data.createdAt
-        && request.resource.data.name is string && request.resource.data.name.size() <= 100
-        && request.resource.data.email is string && request.resource.data.email == request.auth.token.email && request.resource.data.email.size() <= 254
-        && validTimes(request.resource.data.prayerTimes)
-        && request.resource.data.tone in ['gentle','bell','adhan']
-        && request.resource.data.lastActiveAt == request.time
-        && prayerEditAllowed();
+        && request.resource.data.editMonthStart == null && request.resource.data.editsUsed == 0;
+      allow update: if isAdmin()
+        && resource.data.approvalStatus == 'pending'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['approvalStatus','approvalReviewedAt','approvalReviewedBy'])
+        && request.resource.data.approvalStatus in ['approved','rejected']
+        && request.resource.data.approvalReviewedAt == request.time
+        && request.resource.data.approvalReviewedBy == request.auth.token.email
+        || (signedIn() && approved(uid) && request.auth.uid == uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name','email','prayerTimes','tone','hasInitialTimes','editMonthStart','editsUsed','lastActiveAt'])
+          && request.resource.data.uid == resource.data.uid
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.name is string && request.resource.data.name.size() <= 100
+          && request.resource.data.email is string && request.resource.data.email == request.auth.token.email && request.resource.data.email.size() <= 254
+          && validTimes(request.resource.data.prayerTimes) && request.resource.data.tone in ['gentle','bell','adhan']
+          && request.resource.data.lastActiveAt == request.time && prayerEditAllowed());
       allow delete: if false;
     }
     match /activity/{eventId} {
       allow get, list: if signedIn() && (resource.data.uid == request.auth.uid || isAdmin());
-      allow create: if signedIn() && request.resource.data.uid == request.auth.uid
+      allow create: if signedIn() && approved(request.auth.uid) && request.resource.data.uid == request.auth.uid
         && request.resource.data.event in ['page_opened','reminders_enabled','background_reminders_enabled','prayer_checked_in']
-        && request.resource.data.details is map
-        && request.resource.data.occurredAt == request.time;
+        && request.resource.data.details is map && request.resource.data.occurredAt == request.time;
       allow update, delete: if false;
     }
     match /admins/{uid} {
