@@ -1,0 +1,105 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function isAdmin() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/glabAdmins/$(request.auth.uid))
+        && get(/databases/$(database)/documents/glabAdmins/$(request.auth.uid)).data.role == 'admin';
+    }
+    function canMessage(uid) {
+      return isAdminFor(uid)
+        || (exists(/databases/$(database)/documents/glabUsers/$(uid))
+          && get(/databases/$(database)/documents/glabUsers/$(uid)).data.status == 'active'
+          && get(/databases/$(database)/documents/glabUsers/$(uid)).data.emailVerified == true
+          && get(/databases/$(database)/documents/glabUsers/$(uid)).data.canMessage == true);
+    }
+    function isAdminFor(uid) {
+      return exists(/databases/$(database)/documents/glabAdmins/$(uid))
+        && get(/databases/$(database)/documents/glabAdmins/$(uid)).data.role == 'admin';
+    }
+    match /glabUsers/{uid} {
+      allow get: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow list: if isAdmin();
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['uid','name','email','details','emailVerified','status','labs','canMessage','createdAt'])
+        && request.resource.data.uid == uid
+        && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 100
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.details is string && request.resource.data.details.size() <= 500
+        && request.resource.data.emailVerified == false
+        && request.resource.data.status == 'pending'
+        && request.resource.data.labs is list && request.resource.data.labs.size() == 0
+        && request.resource.data.canMessage == false
+        && request.resource.data.createdAt == request.time;
+      allow update: if (signedIn() && request.auth.uid == uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name','details','emailVerified'])
+          && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 100
+          && request.resource.data.details is string && request.resource.data.details.size() <= 500
+          && (request.resource.data.emailVerified == resource.data.emailVerified
+            || (resource.data.emailVerified == false && request.resource.data.emailVerified == true && request.auth.token.email_verified == true)))
+        || (isAdmin()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','labs','canMessage'])
+          && request.resource.data.status in ['pending','active','suspended']
+          && (request.resource.data.status != 'active' || resource.data.emailVerified == true)
+          && request.resource.data.labs is list && request.resource.data.labs.size() <= 8
+          && request.resource.data.labs.toSet().hasOnly(['c','cpp','java','python','r','go','linux','sql'])
+          && request.resource.data.canMessage is bool);
+      allow delete: if false;
+    }
+    match /glabAdmins/{uid} {
+      allow get: if signedIn() && request.auth.uid == uid;
+      allow list, create, update, delete: if false;
+    }
+    match /glabMembers/{uid} {
+      allow get: if signedIn() && (request.auth.uid == uid || isAdmin()
+        || (resource.data.status == 'active' && resource.data.canMessage == true));
+      allow list: if isAdmin() || (signedIn()
+        && resource.data.status == 'active' && resource.data.canMessage == true);
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['uid','name','status','canMessage'])
+        && request.resource.data.uid == uid
+        && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 100
+        && request.resource.data.status == 'pending'
+        && request.resource.data.canMessage == false;
+      allow update: if (signedIn() && request.auth.uid == uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name'])
+          && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 100)
+        || (isAdmin()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','canMessage'])
+          && request.resource.data.status in ['pending','active','suspended']
+          && request.resource.data.canMessage is bool
+          && (request.resource.data.status != 'active'
+            || get(/databases/$(database)/documents/glabUsers/$(uid)).data.emailVerified == true));
+      allow delete: if false;
+    }
+    match /glabChats/{chatId} {
+      allow read: if signedIn() && (isAdmin()
+        || (request.auth.uid in resource.data.participants && canMessage(request.auth.uid)));
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['participants','createdAt'])
+        && request.resource.data.participants is list && request.resource.data.participants.size() == 2
+        && request.resource.data.participants[0] != request.resource.data.participants[1]
+        && request.auth.uid in request.resource.data.participants
+        && canMessage(request.auth.uid)
+        && request.resource.data.createdAt == request.time
+        && canMessage(request.resource.data.participants[0])
+        && canMessage(request.resource.data.participants[1]);
+      allow update, delete: if false;
+      match /messages/{messageId} {
+        function chatParticipant() {
+          return exists(/databases/$(database)/documents/glabChats/$(chatId))
+            && (isAdmin() || (request.auth.uid in get(/databases/$(database)/documents/glabChats/$(chatId)).data.participants
+              && canMessage(request.auth.uid)));
+        }
+        allow get, list: if signedIn() && chatParticipant();
+        allow create: if signedIn() && chatParticipant()
+          && request.resource.data.keys().hasOnly(['authorUid','text','createdAt'])
+          && request.resource.data.authorUid == request.auth.uid
+          && request.resource.data.text is string && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 4000
+          && request.resource.data.createdAt == request.time;
+        allow update, delete: if false;
+      }
+    }
+  }
+}
