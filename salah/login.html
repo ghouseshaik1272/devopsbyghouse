@@ -16,6 +16,7 @@ if(!configured){errorEl.textContent='Firebase setup is not finished yet. Please 
  async function send(intent){if(!valid())return;if(intent==='register'&&!nameEl.value.trim()){errorEl.textContent='Enter your name to request approval.';nameEl.focus();return}buttons.forEach(b=>b.disabled=true);errorEl.style.color='#62746a';errorEl.textContent='Sending your secure link…';try{localStorage.setItem('salah-email-link',emailEl.value.trim());localStorage.setItem('salah-email-intent',intent);if(intent==='register')localStorage.setItem('salah-pending-name',nameEl.value.trim());await sendSignInLinkToEmail(auth,emailEl.value.trim(),{url:new URL('login.html',location.href).href,handleCodeInApp:true});errorEl.textContent='Check your email and open the secure link on this device to continue.'}catch(e){errorEl.style.color='#a53737';errorEl.textContent=message(e);buttons.forEach(b=>b.disabled=false)}}
  document.querySelector('#request').addEventListener('click',()=>send('register'));
  document.querySelector('#signIn').addEventListener('click',()=>send('login'));
+ (async()=>{
  if(isSignInWithEmailLink(auth,location.href)){
    const email=localStorage.getItem('salah-email-link')||prompt('Enter the email address where you received the sign-in link:');
    if(!email){errorEl.textContent='Enter your email address to finish sign-in.'}
@@ -30,6 +31,7 @@ if(!configured){errorEl.textContent='Firebase setup is not finished yet. Please 
      localStorage.removeItem('salah-email-intent');localStorage.removeItem('salah-pending-name');localStorage.removeItem('salah-email-link');location.replace('index.html')
    }catch(e){errorEl.style.color='#a53737';errorEl.textContent=e.message||message(e);buttons.forEach(b=>b.disabled=false)}}
  }
+ })();
 }
 </script><script>if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});</script></body></html>
 
