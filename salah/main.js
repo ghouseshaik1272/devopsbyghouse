@@ -1,6 +1,6 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js';
 import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js';
-import { getFirestore, doc, getDoc, setDoc, updateDoc, addDoc, collection, serverTimestamp, runTransaction } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
+import { getFirestore, doc, getDoc, updateDoc, addDoc, collection, serverTimestamp, runTransaction } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
 import { firebaseConfig } from './firebase-config.js';
 import { pushConfig } from './push-config.js';
 
@@ -192,8 +192,10 @@ onAuthStateChanged(auth, async user => {
   try {
     try { done = JSON.parse(localStorage.getItem(doneKey()) || '{}'); } catch { done = {}; }
     const ref=profileRef(user.uid); let snap=await getDoc(ref);
-    if(!snap.exists()){await setDoc(ref,{uid:user.uid,name:user.displayName||'',email:user.email||'',prayerTimes:['','','','',''],tone:'gentle',hasInitialTimes:false,editMonthStart:null,editsUsed:0,createdAt:serverTimestamp(),lastActiveAt:serverTimestamp()});snap=await getDoc(ref);}
+    if(!snap.exists()){await signOut(auth);location.replace('login.html');return;}
     profile=snap.data();
+    if(profile.approvalStatus==='pending'){gate.textContent='Your access request is awaiting approval. We’ll let you know when it’s ready.';await signOut(auth);return;}
+    if(profile.approvalStatus==='rejected'){gate.textContent='Your access request was declined. Please contact the Salah administrator.';await signOut(auth);return;}
     saved=Array.isArray(profile.prayerTimes)&&profile.prayerTimes.length===5?profile.prayerTimes.slice():['','','','',''];
     draft=saved.slice(); nameInput.value=profile.name||''; toneSelect.value=profile.tone||'gentle'; updateGreeting(); draw();
     gate.remove(); document.body.classList.remove('auth-checking');
