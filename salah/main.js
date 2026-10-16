@@ -70,6 +70,7 @@ const greeting = document.querySelector('#greeting');
 const toneSelect = document.querySelector('#tone');
 let currentUser, profile, saved = ['', '', '', '', ''], draft = saved.slice(), done = {};
 let notified = JSON.parse(sessionStorage.getItem('salah-notified-v1') || '{}');
+let audioContext;
 const doneKey = () => `salah-done-v2:${currentUser.uid}:${new Date().toDateString()}`;
 
 document.querySelector('#date').textContent = new Intl.DateTimeFormat(undefined, {weekday:'short',month:'short',day:'numeric'}).format(new Date());
@@ -127,15 +128,21 @@ saveTimesButton.addEventListener('click', async () => {
   }
 });
 
+function unlockAudio() {
+  try {
+    audioContext ||= new (window.AudioContext || window.webkitAudioContext)();
+    if (audioContext.state === 'suspended') audioContext.resume();
+    return audioContext;
+  } catch { return null; }
+}
 function playTone() {
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const ctx = unlockAudio(); if (!ctx) return;
     const mode = toneSelect.value; const notes = mode==='bell'?[880,660,880]:mode==='adhan'?[440,554,659,554]:[660,880];
     notes.forEach((f,i)=>{const o=ctx.createOscillator(),g=ctx.createGain();o.type=mode==='bell'?'sine':'triangle';o.frequency.value=f;g.gain.setValueAtTime(.0001,ctx.currentTime+i*.28);g.gain.exponentialRampToValueAtTime(.16,ctx.currentTime+i*.28+.025);g.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+i*.28+.22);o.connect(g);g.connect(ctx.destination);o.start(ctx.currentTime+i*.28);o.stop(ctx.currentTime+i*.28+.24);});
-    setTimeout(()=>ctx.close(), 1500);
   } catch {}
 }
-document.querySelector('#preview').addEventListener('click', playTone);
+document.querySelector('#preview').addEventListener('click', () => { unlockAudio(); playTone(); });
 function minuteOf(hm) { if (!hm) return -1; const [h,m]=hm.split(':').map(Number); return h*60+m; }
 function tick() {
   const now=new Date(), minute=now.getHours()*60+now.getMinutes();
@@ -151,7 +158,10 @@ function tick() {
 }
 document.querySelector('#enable').addEventListener('click', async () => {
   if (!saved.every(Boolean)) { showStatus('Save all five prayer times first.'); return; }
-  if (!('Notification' in window) || !('serviceWorker' in navigator)) { showStatus('This browser does not support app notifications.'); return; }
+  // Start/resume audio directly in this tap so browser autoplay rules allow
+  // later scheduled chimes while the Salah page remains open.
+  unlockAudio();
+  if (!('Notification' in window)) { showStatus('Sound reminders are enabled while this page is open.'); tick(); return; }
   try {
     let OneSignal;
     if (pushConfigured) {
@@ -195,3 +205,4 @@ onAuthStateChanged(auth, async user => {
     console.error(error);
   }
 });
+
