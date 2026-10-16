@@ -1,0 +1,11 @@
+name = "salah-reminder-push"
+main = "src/index.js"
+compatibility_date = "2026-10-16"
+
+[triggers]
+crons = ["* * * * *"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "salah-reminders"
+database_id = "REPLACE_AFTER_CREATING_D1_DATABASE"
