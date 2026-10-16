@@ -1,6 +1,6 @@
 # GLab
 
-GLab is planned for `https://devopsbyghouse.co.in/GLab/`. The main DevOps by Ghouse page links here. This folder contains the landing page, email/password account flow, member workspace, admin grants, mentoring chat, and the dedicated GLab Firebase configuration.
+GLab is planned for `https://devopsbyghouse.co.in/GLab/`. The main DevOps by Ghouse page links here. This folder contains the landing page, eight beginner challenge previews, email/password account flow, member workspace, admin grants, mentoring chat, and the dedicated GLab Firebase configuration.
 
 ## Account and access model
 
