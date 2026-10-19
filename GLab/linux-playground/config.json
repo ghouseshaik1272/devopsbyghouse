@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "lab": {
-    "name": "Forkweb.linux",
+    "name": "GLinux",
     "brand": "DevOpsByGhouse",
     "version": "1.1.0",
     "runtimeMode": "browser-x86-emulation",
