@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "lab": {
+    "name": "GLab Linux Playground",
+    "version": "1.0.0",
+    "targetOS": "Ubuntu LTS",
+    "runtimeMode": "real-terminal-required"
+  },
+  "terminal": {
+    "shell": "/bin/bash",
+    "transport": "websocket",
+    "requiresPty": true,
+    "workingDirectory": "/home/learner",
+    "supportsInteractivePrograms": true
+  },
+  "commandFamilies": {
+    "navigation": ["pwd", "ls", "cd", "tree", "find", "locate", "which", "whereis", "realpath"],
+    "filesAndDirectories": ["touch", "mkdir", "rmdir", "cp", "mv", "rm", "ln", "file", "stat", "basename", "dirname"],
+    "textAndEditors": ["cat", "less", "more", "head", "tail", "grep", "sed", "awk", "cut", "sort", "uniq", "wc", "tee", "diff", "patch", "vi", "vim", "nano"],
+    "shellAndScripting": ["bash", "sh", "history", "alias", "unalias", "type", "command", "env", "printenv", "export", "source", "read", "printf", "test", "set", "shift", "trap"],
+    "archives": ["tar", "gzip", "gunzip", "zip", "unzip", "xz"],
+    "usersAndPermissions": ["whoami", "id", "groups", "who", "passwd", "chmod", "chown", "chgrp", "umask", "sudo", "su", "useradd", "usermod", "userdel", "groupadd", "groupdel"],
+    "processesAndServices": ["ps", "top", "htop", "pgrep", "pkill", "kill", "nice", "renice", "jobs", "bg", "fg", "nohup", "free", "uptime", "systemctl", "service", "journalctl", "dmesg"],
+    "storageAndSystem": ["uname", "hostname", "date", "timedatectl", "df", "du", "lsblk", "blkid", "mount", "umount", "lsmem", "lscpu"],
+    "networking": ["ip", "ping", "curl", "wget", "ss", "ip route", "getent", "dig", "nslookup", "traceroute", "nc", "ssh", "scp", "rsync", "tcpdump"],
+    "packages": ["apt", "apt-get", "apt-cache", "dpkg"],
+    "git": ["git clone", "git init", "git status", "git add", "git commit", "git log", "git branch", "git switch", "git merge", "git diff", "git pull", "git push"],
+    "docker": ["docker version", "docker info", "docker pull", "docker build", "docker run", "docker ps", "docker exec", "docker logs", "docker stop", "docker start", "docker rm", "docker rmi", "docker network", "docker volume", "docker compose"]
+  },
+  "packages": {
+    "base": ["bash-completion", "ca-certificates", "coreutils", "findutils", "grep", "sed", "gawk", "less", "file", "tree", "tar", "gzip", "procps", "psmisc"],
+    "editors": ["vim", "nano"],
+    "networking": ["curl", "wget", "iproute2", "iputils-ping", "dnsutils", "netcat-openbsd", "traceroute", "openssh-client", "rsync"],
+    "versionControl": ["git"],
+    "optional": ["htop", "jq", "unzip", "zip", "tcpdump"]
+  },
+  "docker": {
+    "enabled": true,
+    "requiresWorkingDaemon": true,
+    "isolateDockerPerLearner": true,
+    "neverExposeUnauthenticatedTcpDaemon": true
+  },
+  "editors": {
+    "vi": true,
+    "vim": true,
+    "nano": true,
+    "requiresInteractivePty": true
+  },
+  "security": {
+    "isolateEachLearner": true,
+    "resourceLimitsRequired": true,
+    "restrictHostFilesystem": true,
+    "authenticationRequired": true,
+    "networkEgressPolicyRequired": true,
+    "hostRootAccess": false
+  },
+  "session": {
+    "persistentHome": false,
+    "cleanupExpiredSessions": true
+  },
+  "important": "This file is a target capability and package manifest. Listing a command does not install it or make it executable. The backend must install packages, provide a real Bash shell and PTY, enforce isolation, and configure Docker safely."
+}
