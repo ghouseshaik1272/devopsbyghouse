@@ -1,62 +1,40 @@
 {
   "schemaVersion": 1,
   "lab": {
-    "name": "GLab Linux Playground",
-    "version": "1.0.0",
-    "targetOS": "Ubuntu LTS",
-    "runtimeMode": "real-terminal-required"
+    "name": "Forkweb.linux",
+    "brand": "DevOpsByGhouse",
+    "version": "1.1.0",
+    "runtimeMode": "browser-x86-emulation",
+    "baseProject": "https://github.com/alizafarbati/WebLinux",
+    "deployment": "GitHub Pages static frontend with upstream emulator assets"
   },
-  "terminal": {
-    "shell": "/bin/bash",
-    "transport": "websocket",
-    "requiresPty": true,
-    "workingDirectory": "/home/learner",
-    "supportsInteractivePrograms": true
+  "runtime": {
+    "engine": "v86 WebAssembly x86 emulator",
+    "executionLocation": "visitor browser",
+    "backendRequired": false,
+    "userManagedVmRequired": false,
+    "network": "optional public WebSocket relay; relay may be unavailable or shared"
   },
-  "commandFamilies": {
-    "navigation": ["pwd", "ls", "cd", "tree", "find", "locate", "which", "whereis", "realpath"],
-    "filesAndDirectories": ["touch", "mkdir", "rmdir", "cp", "mv", "rm", "ln", "file", "stat", "basename", "dirname"],
-    "textAndEditors": ["cat", "less", "more", "head", "tail", "grep", "sed", "awk", "cut", "sort", "uniq", "wc", "tee", "diff", "patch", "vi", "vim", "nano"],
-    "shellAndScripting": ["bash", "sh", "history", "alias", "unalias", "type", "command", "env", "printenv", "export", "source", "read", "printf", "test", "set", "shift", "trap"],
-    "archives": ["tar", "gzip", "gunzip", "zip", "unzip", "xz"],
-    "usersAndPermissions": ["whoami", "id", "groups", "who", "passwd", "chmod", "chown", "chgrp", "umask", "sudo", "su", "useradd", "usermod", "userdel", "groupadd", "groupdel"],
-    "processesAndServices": ["ps", "top", "htop", "pgrep", "pkill", "kill", "nice", "renice", "jobs", "bg", "fg", "nohup", "free", "uptime", "systemctl", "service", "journalctl", "dmesg"],
-    "storageAndSystem": ["uname", "hostname", "date", "timedatectl", "df", "du", "lsblk", "blkid", "mount", "umount", "lsmem", "lscpu"],
-    "networking": ["ip", "ping", "curl", "wget", "ss", "ip route", "getent", "dig", "nslookup", "traceroute", "nc", "ssh", "scp", "rsync", "tcpdump"],
-    "packages": ["apt", "apt-get", "apt-cache", "dpkg"],
-    "git": ["git clone", "git init", "git status", "git add", "git commit", "git log", "git branch", "git switch", "git merge", "git diff", "git pull", "git push"],
-    "docker": ["docker version", "docker info", "docker pull", "docker build", "docker run", "docker ps", "docker exec", "docker logs", "docker stop", "docker start", "docker rm", "docker rmi", "docker network", "docker volume", "docker compose"]
+  "includedProfiles": [
+    "Buildroot Linux (BusyBox)",
+    "Buildroot Linux 6.8",
+    "TinyCore",
+    "Damn Small Linux",
+    "NodeOS",
+    "KolibriOS"
+  ],
+  "limitations": {
+    "ubuntuLts": false,
+    "apt": "Not guaranteed; available commands depend on the selected guest distribution",
+    "dockerDaemon": "Not included by default; this browser emulator does not provide a host Docker daemon",
+    "fullSystemd": "Not guaranteed",
+    "persistence": "Use emulator save/load state when supported; do not assume server-side home persistence",
+    "commandExecution": "Commands run inside the emulated guest, not on the website host"
   },
-  "packages": {
-    "base": ["bash-completion", "ca-certificates", "coreutils", "findutils", "grep", "sed", "gawk", "less", "file", "tree", "tar", "gzip", "procps", "psmisc"],
-    "editors": ["vim", "nano"],
-    "networking": ["curl", "wget", "iproute2", "iputils-ping", "dnsutils", "netcat-openbsd", "traceroute", "openssh-client", "rsync"],
-    "versionControl": ["git"],
-    "optional": ["htop", "jq", "unzip", "zip", "tcpdump"]
+  "licensing": {
+    "forkSource": "https://github.com/alizafarbati/WebLinux",
+    "upstreamLicense": "BSD-2-Clause",
+    "retainUpstreamNotices": true
   },
-  "docker": {
-    "enabled": true,
-    "requiresWorkingDaemon": true,
-    "isolateDockerPerLearner": true,
-    "neverExposeUnauthenticatedTcpDaemon": true
-  },
-  "editors": {
-    "vi": true,
-    "vim": true,
-    "nano": true,
-    "requiresInteractivePty": true
-  },
-  "security": {
-    "isolateEachLearner": true,
-    "resourceLimitsRequired": true,
-    "restrictHostFilesystem": true,
-    "authenticationRequired": true,
-    "networkEgressPolicyRequired": true,
-    "hostRootAccess": false
-  },
-  "session": {
-    "persistentHome": false,
-    "cleanupExpiredSessions": true
-  },
-  "important": "This file is a target capability and package manifest. Listing a command does not install it or make it executable. The backend must install packages, provide a real Bash shell and PTY, enforce isolation, and configure Docker safely."
+  "note": "This manifest describes the current browser-emulation implementation. It does not claim to provide a full Ubuntu server, Docker host, or every command listed in the earlier real-terminal target manifest."
 }
