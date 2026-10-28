@@ -2,102 +2,69 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Ghouse Shaik | DevOps Engineer</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="MultiCloud Navigator helps teams navigate cloud engineering, DevOps automation, DevSecOps, observability, and practical technology learning.">
+<title>MultiCloud Navigator | Cloud, DevOps & Learning</title>
 <style>
-body {
-margin: 0;
-font-family: "Segoe UI", Arial, sans-serif;
-background: #0f172a;
-color: #ffffff;
-text-align: center;
-}
-header { padding: 80px 20px 40px; }
-h1 { font-size: 44px; margin-bottom: 8px; letter-spacing: 1px; }
-h2 { font-weight: 400; font-size: 18px; color: #cbd5e1; margin: 4px 0; }
-.subtitle { margin-top: 10px; font-size: 14px; color: #94a3b8; }
-.links { margin-top: 15px; }
-.links a { margin: 0 12px; color: #38bdf8; text-decoration: none; font-weight: 500; font-size: 14px; }
-.experience { margin-top: 20px; font-size: 14px; color: #94a3b8; }
-.section { padding: 40px 20px; }
-.cards { display: flex; justify-content: center; gap: 20px; margin-top: 20px; flex-wrap: nowrap; }
-.card { background: #1e293b; padding: 20px; width: 240px; border-radius: 8px; text-decoration: none; color: white; transition: 0.2s ease; }
-.card:hover { transform: translateY(-5px); background: #273449; }
-.card h3 { margin-bottom: 8px; font-size: 18px; color: #38bdf8; }
-.card p { font-size: 13px; color: #cbd5e1; }
-footer { padding: 20px; font-size: 13px; color: #64748b; border-top: 1px solid rgba(255,255,255,0.05); }
+:root{--bg:#07111f;--panel:#101f32;--text:#edf5ff;--muted:#a8bad0;--line:#243950;--cyan:#62e6d4;--blue:#86b7ff;--max:1120px}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(ellipse at 80% 0%,#163450 0,transparent 38%),var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.6}a{color:inherit;text-decoration:none}.wrap{width:min(var(--max),calc(100% - 40px));margin:auto}.nav{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:22px 0;border-bottom:1px solid var(--line)}.brand{font-weight:800;letter-spacing:-.04em;font-size:1.15rem}.brand span{color:var(--cyan)}.navlinks{display:flex;flex-wrap:wrap;gap:22px;color:var(--muted);font-size:.92rem}.navlinks a:hover,.textlink:hover{color:var(--cyan)}.hero{padding:94px 0 76px;display:grid;grid-template-columns:1.3fr .7fr;gap:48px;align-items:center}.eyebrow{color:var(--cyan);font-weight:750;text-transform:uppercase;letter-spacing:.16em;font-size:.76rem}.hero h1{font-size:clamp(2.7rem,6vw,5.1rem);line-height:1.02;letter-spacing:-.065em;margin:18px 0}.hero h1 em{font-style:normal;color:var(--cyan)}.lead{font-size:1.12rem;color:var(--muted);max-width:680px}.actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}.btn{display:inline-flex;align-items:center;justify-content:center;padding:12px 18px;border-radius:10px;font-weight:750;border:1px solid var(--line)}.primary{background:var(--cyan);color:#06202a;border-color:var(--cyan)}.secondary{background:transparent}.hero-card{border:1px solid #31506a;background:linear-gradient(145deg,#142b43,#0c1829);border-radius:22px;padding:28px;box-shadow:0 24px 80px #0003}.hero-card .mini{color:var(--muted);font-size:.85rem}.hero-card h2{margin:8px 0 16px;font-size:1.5rem}.chips{display:flex;flex-wrap:wrap;gap:9px}.chip{padding:7px 10px;border:1px solid #35536a;border-radius:999px;color:#d3e8fa;font-size:.8rem}.section{padding:72px 0;border-top:1px solid var(--line)}.section-head{max-width:720px;margin-bottom:30px}.section h2{font-size:clamp(1.8rem,3.4vw,2.8rem);letter-spacing:-.045em;line-height:1.15;margin:10px 0 14px}.section p{color:var(--muted)}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.card{padding:24px;border:1px solid var(--line);background:#0d1b2c;border-radius:16px;min-height:190px}.icon{font-size:1.45rem}.card h3{margin:12px 0 8px}.card p{font-size:.94rem;margin:0}.split{display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:start}.list{padding:0;list-style:none}.list li{padding:12px 0;border-bottom:1px solid var(--line);color:var(--muted)}.list li:before{content:"↗";color:var(--cyan);margin-right:12px}.banner{padding:32px;border:1px solid #2d5366;background:linear-gradient(120deg,#123448,#10233a);border-radius:18px;display:flex;justify-content:space-between;align-items:center;gap:20px}.banner h2{font-size:1.8rem;margin:0}.banner p{margin:8px 0 0}.footer{padding:28px 0 38px;color:var(--muted);font-size:.88rem;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}.smalllinks{display:flex;gap:18px;flex-wrap:wrap}@media(max-width:800px){.hero{grid-template-columns:1fr;padding:64px 0}.grid{grid-template-columns:repeat(2,1fr)}.split{grid-template-columns:1fr}.nav{align-items:flex-start;flex-direction:column}.navlinks{gap:14px}}@media(max-width:540px){.wrap{width:min(var(--max),calc(100% - 28px))}.grid{grid-template-columns:1fr}.banner{align-items:flex-start;flex-direction:column}.hero h1{font-size:2.8rem}}
 </style>
 </head>
-
 <body>
-
-<header>
-<h1>Ghouse Shaik</h1>
-<h2>DevOps & Cloud Engineer</h2>
-<h2>Kubernetes | Docker | AWS | CI/CD</h2>
-
-<div class="subtitle">
-Automating infrastructure and building scalable systems.
+<div class="wrap">
+<nav class="nav" aria-label="Main navigation">
+<a class="brand" href="#home">MultiCloud <span>Navigator</span></a>
+<div class="navlinks">
+<a href="#solutions">Solutions</a><a href="#services">Services</a><a href="#learning">Learning</a><a href="#community">Community</a><a href="founder.html">Founder</a><a href="#contact">Contact</a>
 </div>
-
-<div class="links">
-<a href="https://github.com/ghouseshaik1272" target="_blank">GitHub</a>
-<a href="https://www.linkedin.com/in/ghouseshaik/" target="_blank">LinkedIn</a>
-<a href="GLab/">GLab</a>
+</nav>
+<main id="home">
+<section class="hero">
+<div>
+<div class="eyebrow">Cloud • DevOps • Learning</div>
+<h1>Navigate the cloud.<br><em>Build what’s next.</em></h1>
+<p class="lead">MultiCloud Navigator is an emerging technology initiative focused on practical cloud engineering, DevOps automation, DevSecOps, observability, and hands-on learning for the next generation of engineers.</p>
+<div class="actions"><a class="btn primary" href="#solutions">Explore our focus</a><a class="btn secondary" href="#learning">Explore learning</a></div>
 </div>
-
-<div class="experience">
-Currently at Reveal Data Private Limited <br>
-Formerly at Consilio LLC and EY (Ernst & Young LLP)
+<aside class="hero-card">
+<div class="mini">OUR MISSION</div><h2>Make modern cloud skills practical, accessible, and collaborative.</h2>
+<div class="chips"><span class="chip">AWS · Azure · GCP</span><span class="chip">CI/CD</span><span class="chip">Kubernetes</span><span class="chip">DevSecOps</span><span class="chip">Observability</span><span class="chip">SRE</span></div>
+</aside>
+</section>
+<section class="section" id="solutions">
+<div class="section-head"><div class="eyebrow">What we focus on</div><h2>Practical technology for real-world challenges.</h2><p>We are building our capabilities around the tools, practices, and learning paths that help teams deliver reliable software and help engineers grow their skills.</p></div>
+<div class="grid">
+<article class="card"><div class="icon">☁️</div><h3>Cloud & Multi-Cloud</h3><p>Cloud foundations, infrastructure design, deployment practices, and learning resources across major cloud platforms.</p></article>
+<article class="card"><div class="icon">⚙️</div><h3>DevOps & Automation</h3><p>CI/CD concepts, infrastructure as code, container workflows, and repeatable delivery practices.</p></article>
+<article class="card"><div class="icon">🛡️</div><h3>DevSecOps</h3><p>Practical approaches to integrating security checks and safer practices into software delivery.</p></article>
+<article class="card"><div class="icon">📈</div><h3>Observability & SRE</h3><p>Monitoring, metrics, logs, alerting, troubleshooting, and reliability engineering fundamentals.</p></article>
+<article class="card"><div class="icon">🧰</div><h3>Hands-on Labs</h3><p>Practice-oriented exercises and guided labs to help turn concepts into usable technical skills.</p></article>
+<article class="card"><div class="icon">🤝</div><h3>Project Collaboration</h3><p>A growing community vision where learners can collaborate, build portfolio projects, and learn together.</p></article>
 </div>
-</header>
-
-<div class="section">
-
-<div class="cards">
-<a class="card" href="https://github.com/ghouseshaik1272" target="_blank">
-<h3>Projects</h3>
-<p>CI/CD pipelines, Kubernetes deployments and cloud infrastructure.</p>
-</a>
-
-<a class="card" href="https://multicloudnavigator.blogspot.com/" target="_blank">
-<h3>Blog</h3>
-<p>DevOps tutorials, Kubernetes guides and cloud architecture insights.</p>
-</a>
-
-<a class="card" href="https://www.youtube.com/@DevopsbyGhouse-MCN" target="_blank">
-<h3>YouTube</h3>
-<p>Hands-on DevOps walkthroughs and infrastructure demonstrations.</p>
-</a>
+</section>
+<section class="section" id="services">
+<div class="section-head"><div class="eyebrow">Services & capabilities</div><h2>From learning the tools to applying the practices.</h2><p>MultiCloud Navigator is at an early stage. Our focus areas describe the capabilities we are developing; specific engagements and availability should be confirmed with us.</p></div>
+<div class="split">
+<div><h3>Technology focus</h3><ul class="list"><li>Cloud infrastructure and deployment workflows</li><li>CI/CD pipelines and infrastructure automation</li><li>Containers, Kubernetes, and platform engineering</li><li>DevSecOps and cloud security fundamentals</li><li>Monitoring, logging, and reliability practices</li></ul></div>
+<div><h3>Learning focus</h3><ul class="list"><li>Linux and Python foundations</li><li>AWS, Azure, and Google Cloud concepts</li><li>Docker, Kubernetes, and Terraform</li><li>Jenkins and GitHub Actions</li><li>Prometheus, Grafana, SRE, and troubleshooting</li></ul></div>
 </div>
-
-<div class="cards">
-<a class="card" href="https://aws.amazon.com/free/?trk=011f28e3-1dfa-405d-894f-3e05b14038a6&sc_channel=ps" target="_blank">
-<h3>AWS</h3>
-<p>AWS Free Tier resources and cloud learning platform.</p>
-</a>
-
-<a class="card" href="https://classroom.google.com/w/ODIxMzQ0OTg5NzU0/t/all" target="_blank">
-<h3>Classroom</h3>
-<p>Access DevOps learning materials and classroom content.</p>
-</a>
-
-<a class="card" href="https://killercoda.com/" target="_blank">
-<h3>Killercoda</h3>
-<p>Interactive Kubernetes and DevOps hands-on labs.</p>
-</a>
+</section>
+<section class="section" id="learning">
+<div class="section-head"><div class="eyebrow">Learn by doing</div><h2>Build skills through practice and projects.</h2><p>Explore existing tutorials and learning resources while we continue developing structured learning paths and collaborative project opportunities.</p></div>
+<div class="grid">
+<a class="card" href="https://multicloudnavigator.blogspot.com/" target="_blank" rel="noopener"><div class="icon">✍️</div><h3>MultiCloud Navigator Blog</h3><p>Read tutorials, walkthroughs, and cloud and DevOps learning notes.</p></a>
+<a class="card" href="https://www.youtube.com/@DevopsbyGhouse-MCN" target="_blank" rel="noopener"><div class="icon">▶️</div><h3>Video Tutorials</h3><p>Follow practical demonstrations and technical learning videos.</p></a>
+<a class="card" href="GLab/" ><div class="icon">⌨️</div><h3>GLab Playground</h3><p>Explore the existing hands-on learning tools and labs.</p></a>
 </div>
-
+</section>
+<section class="section" id="community">
+<div class="banner"><div><div class="eyebrow">Community & collaboration</div><h2>Learn together. Build together.</h2><p>We welcome learners and practitioners interested in sharing knowledge and building practical projects.</p></div><a class="btn primary" href="mailto:ghouseshaik1272@gmail.com?subject=MultiCloud%20Navigator%20Collaboration">Get in touch</a></div>
+</section>
+<section class="section" id="contact">
+<div class="section-head"><div class="eyebrow">Contact</div><h2>Let’s connect.</h2><p>For learning resources, project collaboration, or enquiries about our focus areas, contact us by email or explore our public channels.</p><div class="actions"><a class="btn primary" href="mailto:ghouseshaik1272@gmail.com?subject=MultiCloud%20Navigator%20Enquiry">Email MultiCloud Navigator</a><a class="btn secondary" href="founder.html">Meet the Founder</a></div></div>
+</section>
+</main>
+<footer class="footer"><span>© 2026 MultiCloud Navigator · An emerging cloud and DevOps learning initiative.</span><div class="smalllinks"><a href="founder.html">Founder</a><a href="https://github.com/ghouseshaik1272" target="_blank" rel="noopener">GitHub</a><a href="https://www.linkedin.com/in/ghouseshaik/" target="_blank" rel="noopener">LinkedIn</a><a href="salah/login.html">Salah Reminder</a></div></footer>
 </div>
-
-<footer>
-<a href="salah/login.html" style="display:inline-block;margin-bottom:10px;color:#38bdf8;text-decoration:none;font-weight:600">☾ &nbsp; Salah Reminder</a><br>
-Contact: ghouseshaik1272@gmail.com<br>
-© 2026 Ghouse Shaik
-</footer>
-
 </body>
 </html>
-
-
