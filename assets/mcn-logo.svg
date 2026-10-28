@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="150" viewBox="0 0 720 150" role="img" aria-labelledby="title desc">
+<title id="title">MultiCloud Navigator</title><desc id="desc">MultiCloud Navigator — Learn, Build, Deliver, Master.</desc>
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#00d9ff"/><stop offset="1" stop-color="#1687ff"/></linearGradient></defs>
+<rect x="4" y="12" width="126" height="126" rx="28" fill="#0d1b2e" stroke="#24506b" stroke-width="2"/>
+<circle cx="67" cy="75" r="43" fill="none" stroke="url(#g)" stroke-width="3"/>
+<ellipse cx="67" cy="75" rx="19" ry="43" fill="none" stroke="#00d9ff" stroke-width="2"/>
+<ellipse cx="67" cy="75" rx="43" ry="15" fill="none" stroke="#00d9ff" stroke-width="2" transform="rotate(-24 67 75)"/>
+<path d="M31 75h72M67 32v86" stroke="#00d9ff" stroke-width="1.5" opacity=".7"/>
+<path d="M49 84l12 12 26-31" fill="none" stroke="#ffb51b" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="153" y="69" fill="#f3f8ff" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="43" font-weight="800" letter-spacing="-1.4">MultiCloud</text>
+<text x="153" y="111" fill="#00d9ff" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="37" font-weight="800" letter-spacing="-.7">Navigator</text>
+<text x="156" y="137" fill="#b5c6db" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" font-weight="700" letter-spacing="3.2">LEARN  |  BUILD  |  DELIVER  |  MASTER</text>
+</svg>
