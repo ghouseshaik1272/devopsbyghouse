@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
-type Operation = "invite_normal" | "promote_admin" | "set_status" | "update_profile" | "delete_user";
+type Operation = "invite_normal" | "promote_admin" | "demote_admin" | "list_users" | "set_status" | "update_profile" | "delete_user";
 Deno.serve(async (req) => {
   const respond = (body: unknown, status = 200) =>
     new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -36,6 +36,20 @@ Deno.serve(async (req) => {
   const operation = body.operation;
   const service = createClient(url, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
 
+  if (operation === "list_users") {
+    if (!isSuperadmin) return respond({ error: "Only the superadmin can list platform roles." }, 403);
+    const { data: customers, error: customerError } = await service.from("shopkeeper_customer_access").select("user_id,email,display_name,status,created_at").order("created_at", { ascending: false });
+    if (customerError) return respond({ error: customerError.message }, 400);
+    const [{ data: admins, error: adminsError }, { data: superadmins, error: supersError }] = await Promise.all([
+      service.from("shopkeeper_admins").select("user_id"),
+      service.from("shopkeeper_superadmins").select("user_id"),
+    ]);
+    if (adminsError || supersError) return respond({ error: adminsError?.message || supersError?.message }, 400);
+    const adminIds = new Set((admins || []).map((x: {user_id:string}) => x.user_id));
+    const superIds = new Set((superadmins || []).map((x: {user_id:string}) => x.user_id));
+    return respond({ success: true, users: (customers || []).map((u: {user_id:string;email:string;display_name:string;status:string;created_at:string}) => ({...u, role: superIds.has(u.user_id) ? "superadmin" : adminIds.has(u.user_id) ? "admin" : "customer"})) });
+  }
+
   if (operation === "invite_normal") {
     const email = String(body.email || "").trim().toLowerCase();
     const displayName = String(body.displayName || "").trim();
@@ -53,7 +67,7 @@ Deno.serve(async (req) => {
     return respond({ success: true, userId: data.user.id, email, message: "Invitation sent to normal user." });
   }
 
-  if (operation === "promote_admin" && !isSuperadmin) return respond({ error: "Only the superadmin can promote an admin." }, 403);
+  if ((operation === "promote_admin" || operation === "demote_admin") && !isSuperadmin) return respond({ error: "Only the superadmin can change admin roles." }, 403);
   if (!body.userId || !/^[0-9a-f-]{36}$/i.test(body.userId)) return respond({ error: "A valid userId is required." }, 400);
   const userId = body.userId;
   const { data: targetAdmin } = await service.from("shopkeeper_admins").select("user_id").eq("user_id", userId).maybeSingle();
@@ -71,6 +85,13 @@ Deno.serve(async (req) => {
     }, { onConflict: "user_id" });
     if (accessError) return respond({ error: accessError.message }, 400);
     return respond({ success: true, message: "User promoted to admin." });
+  }
+
+  if (operation === "demote_admin") {
+    if (!targetAdmin) return respond({ error: "This user is not an admin." }, 404);
+    const { error } = await service.from("shopkeeper_admins").delete().eq("user_id", userId);
+    if (error) return respond({ error: error.message }, 400);
+    return respond({ success: true, message: "Admin role removed. The account remains a normal user." });
   }
 
   if (operation === "set_status") {
