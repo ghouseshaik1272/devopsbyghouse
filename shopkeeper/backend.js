@@ -83,8 +83,38 @@ export async function setNormalCustomerStatus(userId,status) {
   if(!["approved","rejected","suspended","pending"].includes(status)) throw new Error("Invalid customer status.");
   return manageShopkeeperUser({operation:"set_status",userId,status});
 }
+export async function listShopkeeperCoupons(){
+  if(!(await isSuperadmin())) throw new Error("Only superadmins can manage coupons.");
+  const {data,error}=await supabase.from("shopkeeper_coupons").select("*").order("created_at",{ascending:false});
+  if(error) throw error;
+  return data||[];
+}
+export async function saveShopkeeperCoupon(coupon){
+  if(!(await isSuperadmin())) throw new Error("Only superadmins can manage coupons.");
+  const name=String(coupon.name||"").trim();
+  const code=String(coupon.code||"").trim().toUpperCase().replace(/\s+/g,"");
+  const validTill=String(coupon.valid_till||"");
+  const excludedCategories=[...new Set((Array.isArray(coupon.excluded_categories)?coupon.excluded_categories:String(coupon.excluded_categories||"").split(",")).map(x=>String(x).trim()).filter(Boolean))];
+  if(name.length<2||name.length>100) throw new Error("Coupon name must be between 2 and 100 characters.");
+  if(!/^[A-Z0-9_-]{3,40}$/.test(code)) throw new Error("Coupon code must be 3–40 characters using letters, numbers, hyphens or underscores.");
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(validTill)||Number.isNaN(Date.parse(validTill))||validTill<new Date().toISOString().slice(0,10)) throw new Error("Choose a valid expiry date that is today or later.");
+  if(excludedCategories.some(x=>x.length>80)) throw new Error("Category names must be 80 characters or fewer.");
+  const row={name,code,valid_till:validTill,excluded_categories:excludedCategories,updated_at:new Date().toISOString()};
+  let query;
+  if(coupon.id) query=supabase.from("shopkeeper_coupons").update(row).eq("id",coupon.id);
+  else query=supabase.from("shopkeeper_coupons").insert({...row,created_by:currentUser.id});
+  const {data,error}=await query.select("*").single();
+  if(error) throw error;
+  return data;
+}
+export async function deleteShopkeeperCoupon(id){
+  if(!(await isSuperadmin())) throw new Error("Only superadmins can manage coupons.");
+  const {error}=await supabase.from("shopkeeper_coupons").delete().eq("id",id);
+  if(error) throw error;
+  return true;
+}
 export async function listCustomerRegistrations(){if(!(await isSuperadmin()))throw new Error("Superadmin access is required.");const {data,error}=await supabase.from("shopkeeper_customer_access").select("*").order("created_at",{ascending:false});if(error)throw error;return data||[];}
 export async function decideCustomerRegistration(userId,status){if(!(await isSuperadmin()))throw new Error("Superadmin access is required.");if(!["approved","rejected","suspended","pending"].includes(status))throw new Error("Invalid registration status.");const {error}=await supabase.from("shopkeeper_customer_access").update({status,updated_at:new Date().toISOString()}).eq("user_id",userId);if(error)throw error;}
 export {supabase as db, supabase as auth};
-window.ShopkeeperBackend={configured,get currentUser(){return currentUser;},signUp,signIn,resetPassword,logout,getActiveProducts,createOrder,listMyOrders,listAllProducts,adminListOrders,saveProduct,setProductActive,updateOrderStatus,listCustomerRegistrations,decideCustomerRegistration,submitAccountRequest,listAccountRequests,rejectAccountRequest,inviteAccountRequest,listNormalCustomers,setNormalCustomerStatus,manageShopkeeperUser};
+window.ShopkeeperBackend={configured,get currentUser(){return currentUser;},signUp,signIn,resetPassword,logout,getActiveProducts,createOrder,listMyOrders,listAllProducts,adminListOrders,saveProduct,setProductActive,updateOrderStatus,listCustomerRegistrations,decideCustomerRegistration,listShopkeeperCoupons,saveShopkeeperCoupon,deleteShopkeeperCoupon,submitAccountRequest,listAccountRequests,rejectAccountRequest,inviteAccountRequest,listNormalCustomers,setNormalCustomerStatus,manageShopkeeperUser};
 window.dispatchEvent(new CustomEvent("shopkeeper:backend-ready",{detail:{configured}}));
