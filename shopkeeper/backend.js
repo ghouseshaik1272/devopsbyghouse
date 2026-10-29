@@ -40,7 +40,7 @@ export async function submitAccountRequest({fullName,email,phone,message=""}) {
   ready();
   const name=String(fullName||"").trim(), mail=String(email||"").trim().toLowerCase(), tel=String(phone||"").trim(), note=String(message||"").trim();
   if(name.length<2||name.length>100) throw new Error("Enter your full name (2–100 characters).");
-  if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(mail)||mail.length>254) throw new Error("Enter a valid email address.");
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)||mail.length>254) throw new Error("Enter a valid email address.");
   if(tel.length>30||note.length>1000) throw new Error("Phone or message is too long.");
   const {error}=await supabase.from("shopkeeper_account_requests").insert({full_name:name,email:mail,phone:tel,message:note});
   if(error) throw error;
