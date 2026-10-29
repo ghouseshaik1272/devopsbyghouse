@@ -16,6 +16,14 @@ document.querySelector(".stats")?.remove();document.querySelector(".columns")?.r
 const warning=document.querySelector(".warning");if(warning)warning.textContent="Protected superadmin console. Registration actions require the superadmin role in Supabase and the latest database schema.";
 function msg(id,text){$(id).textContent=text}
 async function load(){try{const rows=await listCustomerRegistrations();$("customerRows").innerHTML=rows.map(u=>'<tr><td>'+esc(u.display_name||"—")+'</td><td>'+esc(u.email)+'</td><td>'+new Date(u.created_at).toLocaleString()+'</td><td><span class="status '+(u.status==="approved"?"ok":u.status==="rejected"||u.status==="suspended"?"no":"")+'">'+esc(u.status)+'</span></td><td><div class="actions">'+["approved","rejected","suspended","pending"].map(s=>'<button class="btn '+(s==="approved"?"green":"")+'" data-user="'+esc(u.user_id)+'" data-status="'+s+'">'+s[0].toUpperCase()+s.slice(1)+'</button>').join("")+'</div></td></tr>').join("")||'<tr><td colspan="5">No registrations yet.</td></tr>';msg("workspaceMessage","Loaded "+rows.length+" customer registrations.");}catch(e){msg("workspaceMessage","Could not load registrations: "+e.message)}}
+async function loadRoles(){
+ try{
+  const result=await manageShopkeeperUser({operation:"list_users"});
+  const rows=result.users||[];
+  $("roleRows").innerHTML=rows.map(u=>'<tr><td>'+esc(u.display_name||"—")+'</td><td>'+esc(u.email||"")+'</td><td>'+esc(u.role)+'</td><td>'+esc(u.status)+'</td><td>'+(u.role==="customer"?'<button class="btn green" data-promote="'+esc(u.user_id)+'">Promote to admin</button>':u.role==="admin"?'<button class="btn" data-demote="'+esc(u.user_id)+'">Remove admin role</button>':"Protected")+'</td></tr>').join("")||'<tr><td colspan="5">No users found.</td></tr>';
+  msg("roleMessage","Loaded "+rows.length+" users.");
+ }catch(e){msg("roleMessage","Could not load roles: "+e.message)}
+}
 async function loadRequests(){
  try{
   const rows=await listAccountRequests();
@@ -28,8 +36,19 @@ async function loadRequests(){
 function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 if(!configured){msg("superMessage","Supabase configuration is missing.");}
 $("superForm").addEventListener("submit",async e=>{e.preventDefault();try{await signIn({email:$("superEmail").value,password:$("superPassword").value});}catch(err){msg("superMessage","Sign in failed: "+err.message)}});
-onAuthStateChanged(auth,async user=>{if(!user){$("superLogin").style.display="";$("superWorkspace").style.display="none";$("accountRequestWorkspace").style.display="none";return;}try{const result=await user.getIdTokenResult();if(!result.claims.shopkeeperSuperadmin)throw new Error("This account is not authorized as a superadmin.");$("superLogin").style.display="none";$("superWorkspace").style.display="";$("accountRequestWorkspace").style.display="";await Promise.all([load(),loadRequests()]);}catch(err){$("superLogin").style.display="";$("superWorkspace").style.display="none";msg("superMessage",err.message);}});
+onAuthStateChanged(auth,async user=>{if(!user){$("superLogin").style.display="";$("superWorkspace").style.display="none";$("accountRequestWorkspace").style.display="none";$("roleWorkspace").style.display="none";return;}try{const result=await user.getIdTokenResult();if(!result.claims.shopkeeperSuperadmin)throw new Error("This account is not authorized as a superadmin.");$("superLogin").style.display="none";$("superWorkspace").style.display="";$("accountRequestWorkspace").style.display="";$("roleWorkspace").style.display="";await Promise.all([load(),loadRequests(),loadRoles()]);}catch(err){$("superLogin").style.display="";$("superWorkspace").style.display="none";msg("superMessage",err.message);}});
 $("reloadCustomers").onclick=load;$("reloadRequests").onclick=loadRequests;$("superLogout").onclick=()=>logout().catch(e=>msg("workspaceMessage",e.message));
+$("reloadRoles").onclick=loadRoles;
+$("roleRows").addEventListener("click",async e=>{
+ const promote=e.target.closest("[data-promote]"),demote=e.target.closest("[data-demote]");
+ if(!promote&&!demote)return;
+ const userId=(promote||demote).dataset[promote?"promote":"demote"];
+ try{
+  if(promote){if(!confirm("Promote this user to admin?"))return;await manageShopkeeperUser({operation:"promote_admin",userId});msg("roleMessage","User promoted to admin.");}
+  else {if(!confirm("Remove this admin role?"))return;await manageShopkeeperUser({operation:"demote_admin",userId});msg("roleMessage","Admin role removed.");}
+  await loadRoles();
+ }catch(err){msg("roleMessage","Role update failed: "+err.message)}
+});
 $("customerRows").addEventListener("click",async e=>{const b=e.target.closest("[data-user]");if(!b)return;try{await decideCustomerRegistration(b.dataset.user,b.dataset.status);msg("workspaceMessage","Registration updated.");await load();}catch(err){msg("workspaceMessage","Update failed: "+err.message)}});
 $("accountRequestRows").addEventListener("click",async e=>{
  const invite=e.target.closest("[data-invite-request]"),reject=e.target.closest("[data-reject-request]");
