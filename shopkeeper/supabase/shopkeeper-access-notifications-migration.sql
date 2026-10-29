@@ -221,3 +221,19 @@ grant select on public.shopkeeper_superadmin_audit to authenticated;
 drop policy if exists "Superadmins view audit" on public.shopkeeper_superadmin_audit;
 create policy "Superadmins view audit" on public.shopkeeper_superadmin_audit for select to authenticated
  using (public.is_shopkeeper_superadmin());
+
+create or replace function public.shopkeeper_audit_page_access_change()
+returns trigger language plpgsql security definer set search_path = ''
+as $$
+begin
+ insert into public.shopkeeper_superadmin_audit(actor_user_id,action,target_user_id,details)
+ values(auth.uid(),
+   case when tg_op='DELETE' then 'page_access_deleted' else 'page_access_saved' end,
+   coalesce(new.user_id,old.user_id),
+   jsonb_build_object('role',case when tg_op='DELETE' then old.role else new.role end,
+                      'allowed_pages',case when tg_op='DELETE' then old.allowed_pages else new.allowed_pages end));
+ return coalesce(new,old);
+end $$;
+drop trigger if exists shopkeeper_page_access_audit on public.shopkeeper_user_page_access;
+create trigger shopkeeper_page_access_audit after insert or update or delete on public.shopkeeper_user_page_access
+for each row execute function public.shopkeeper_audit_page_access_change();
