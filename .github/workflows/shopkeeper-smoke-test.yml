@@ -1,0 +1,43 @@
+name: Shopkeeper Live Smoke Test
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 3 * * *"
+  push:
+    branches:
+      - main
+    paths:
+      - "shopkeeper/**"
+      - ".github/workflows/shopkeeper-smoke-test.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check live Shopkeeper pages
+        shell: bash
+        run: |
+          set -euo pipefail
+          urls=(
+            "https://devopsbyghouse.co.in/shopkeeper/"
+            "https://devopsbyghouse.co.in/shopkeeper/app.html"
+            "https://devopsbyghouse.co.in/shopkeeper/admin.html"
+            "https://devopsbyghouse.co.in/shopkeeper/superadmin.html"
+          )
+          for url in "${urls[@]}"; do
+            echo "Checking $url"
+            code="$(curl --location --silent --show-error --output /tmp/shopkeeper-page.html --write-out '%{http_code}' --max-time 30 "$url")"
+            if [[ "$code" != "200" ]]; then
+              echo "::error::Expected HTTP 200 from $url, got $code"
+              exit 1
+            fi
+            if [[ ! -s /tmp/shopkeeper-page.html ]]; then
+              echo "::error::Empty response from $url"
+              exit 1
+            fi
+            echo "OK ($code): $url"
+          done
