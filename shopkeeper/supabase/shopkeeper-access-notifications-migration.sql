@@ -65,7 +65,7 @@ create policy "Recipients read Shopkeeper notifications" on public.shopkeeper_no
  using (
    (recipient_user_id = auth.uid())
    or (recipient_role = 'superadmin' and public.is_shopkeeper_superadmin())
-   or (recipient_role = 'admin' and public.is_shopkeeper_admin())
+   or (recipient_role = 'admin' and (public.shopkeeper_has_page_access('orders') or public.shopkeeper_has_page_access('customer_details') or public.shopkeeper_has_page_access('user_management')))
  );
 drop policy if exists "Recipients mark own notifications read" on public.shopkeeper_notifications;
 create policy "Recipients mark own notifications read" on public.shopkeeper_notifications for update to authenticated
@@ -170,7 +170,7 @@ begin
  where read_at is null and (
    recipient_user_id=auth.uid()
    or (recipient_role='superadmin' and public.is_shopkeeper_superadmin())
-   or (recipient_role='admin' and public.is_shopkeeper_admin())
+   or (recipient_role='admin' and (public.shopkeeper_has_page_access('orders') or public.shopkeeper_has_page_access('customer_details') or public.shopkeeper_has_page_access('user_management')))
  );
 end $$;
 revoke all on function public.shopkeeper_mark_notifications_read() from public, anon;
