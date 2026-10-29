@@ -178,6 +178,8 @@ grant execute on function public.shopkeeper_mark_notifications_read() to authent
 
 -- Replace broad admin data policies with page-grant-aware policies.
 drop policy if exists "Admins manage products" on public.shopkeeper_products;
+drop policy if exists "Authenticated users view permitted products" on public.shopkeeper_products;
+drop policy if exists "Authorized page users manage products" on public.shopkeeper_products;
 drop policy if exists "Public can view active products" on public.shopkeeper_products;
 create policy "Public can view active products" on public.shopkeeper_products for select to anon using (active = true);
 create policy "Authenticated users view permitted products" on public.shopkeeper_products for select to authenticated
@@ -187,9 +189,11 @@ create policy "Authorized page users manage products" on public.shopkeeper_produ
  with check (public.shopkeeper_has_page_access('products'));
 
 drop policy if exists "Customers view own orders or admins view all" on public.shopkeeper_orders;
+drop policy if exists "Authorized users view permitted orders" on public.shopkeeper_orders;
 create policy "Authorized users view permitted orders" on public.shopkeeper_orders for select to authenticated
  using (user_id = auth.uid() or public.shopkeeper_has_page_access('orders') or public.shopkeeper_has_page_access('customer_details'));
 drop policy if exists "Admins update orders" on public.shopkeeper_orders;
+drop policy if exists "Authorized order managers update orders" on public.shopkeeper_orders;
 create policy "Authorized order managers update orders" on public.shopkeeper_orders for update to authenticated
  using (public.shopkeeper_has_page_access('orders')) with check (public.shopkeeper_has_page_access('orders'));
 
@@ -199,6 +203,7 @@ create policy "Superadmins manage coupons" on public.shopkeeper_coupons for all 
 
 -- Customer records: only users with the relevant granted pages or superadmins.
 drop policy if exists "Admins view normal customer access" on public.shopkeeper_customer_access;
+drop policy if exists "Authorized users view customer access" on public.shopkeeper_customer_access;
 create policy "Authorized users view customer access" on public.shopkeeper_customer_access for select to authenticated
  using (
    user_id = auth.uid()
@@ -206,6 +211,7 @@ create policy "Authorized users view customer access" on public.shopkeeper_custo
    or public.shopkeeper_has_page_access('user_management')
  );
 drop policy if exists "Admins update normal customer access" on public.shopkeeper_customer_access;
+drop policy if exists "Authorized users update customer access" on public.shopkeeper_customer_access;
 create policy "Authorized users update customer access" on public.shopkeeper_customer_access for update to authenticated
  using (public.shopkeeper_has_page_access('user_management'))
  with check (public.shopkeeper_has_page_access('user_management'));
