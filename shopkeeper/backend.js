@@ -81,9 +81,7 @@ export async function listNormalCustomers() {
 export async function setNormalCustomerStatus(userId,status) {
   if(!(await isAdmin())) throw new Error("Administrator access is required.");
   if(!["approved","rejected","suspended","pending"].includes(status)) throw new Error("Invalid customer status.");
-  const {data,error}=await supabase.from("shopkeeper_customer_access").update({status,updated_at:new Date().toISOString()}).eq("user_id",userId).select("user_id").maybeSingle();
-  if(error) throw error;
-  if(!data) throw new Error("Customer not found or this account is protected. Superadmin accounts cannot be changed by admins.");
+  return manageShopkeeperUser({operation:"set_status",userId,status});
 }
 export async function listCustomerRegistrations(){if(!(await isSuperadmin()))throw new Error("Superadmin access is required.");const {data,error}=await supabase.from("shopkeeper_customer_access").select("*").order("created_at",{ascending:false});if(error)throw error;return data||[];}
 export async function decideCustomerRegistration(userId,status){if(!(await isSuperadmin()))throw new Error("Superadmin access is required.");if(!["approved","rejected","suspended","pending"].includes(status))throw new Error("Invalid registration status.");const {error}=await supabase.from("shopkeeper_customer_access").update({status,updated_at:new Date().toISOString()}).eq("user_id",userId);if(error)throw error;}
