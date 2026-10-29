@@ -115,6 +115,24 @@ export async function deleteShopkeeperCoupon(id){
 }
 export async function listCustomerRegistrations(){if(!(await isSuperadmin()))throw new Error("Superadmin access is required.");const {data,error}=await supabase.from("shopkeeper_customer_access").select("*").order("created_at",{ascending:false});if(error)throw error;return data||[];}
 export async function decideCustomerRegistration(userId,status){if(!(await isSuperadmin()))throw new Error("Superadmin access is required.");if(!["approved","rejected","suspended","pending"].includes(status))throw new Error("Invalid registration status.");const {error}=await supabase.from("shopkeeper_customer_access").update({status,updated_at:new Date().toISOString()}).eq("user_id",userId);if(error)throw error;}
+
+export async function listShopkeeperPageAccess(){
+  if(!(await isSuperadmin())) throw new Error("Superadmin access is required.");
+  const {data,error}=await supabase.from("shopkeeper_user_page_access").select("user_id,role,allowed_pages,updated_at,updated_by").order("updated_at",{ascending:false});
+  if(error) throw error;
+  return data||[];
+}
+export async function saveShopkeeperPageAccess({user_id,role,allowed_pages}){
+  if(!(await isSuperadmin())) throw new Error("Superadmin access is required.");
+  if(!user_id) throw new Error("Choose a user.");
+  if(!["store_admin","inventory_manager","order_manager","customer","restricted_user"].includes(role)) throw new Error("Choose a supported access role.");
+  const valid=["storefront","customer_app","own_orders","admin_dashboard","products","inventory","orders","customer_details","user_management","coupons","platform_controls","audit_logs"];
+  const pages=[...new Set((allowed_pages||[]).filter(x=>valid.includes(x)))];
+  const {data,error}=await supabase.from("shopkeeper_user_page_access").upsert({user_id,role,allowed_pages:pages,updated_by:currentUser.id,updated_at:new Date().toISOString()},{onConflict:"user_id"}).select("user_id,role,allowed_pages,updated_at").single();
+  if(error) throw error;
+  return data;
+}
+
 export {supabase as db, supabase as auth};
-window.ShopkeeperBackend={configured,get currentUser(){return currentUser;},signUp,signIn,resetPassword,logout,getActiveProducts,createOrder,listMyOrders,listAllProducts,adminListOrders,saveProduct,setProductActive,updateOrderStatus,listCustomerRegistrations,decideCustomerRegistration,listShopkeeperCoupons,saveShopkeeperCoupon,deleteShopkeeperCoupon,submitAccountRequest,listAccountRequests,rejectAccountRequest,inviteAccountRequest,listNormalCustomers,setNormalCustomerStatus,manageShopkeeperUser};
+window.ShopkeeperBackend={configured,get currentUser(){return currentUser;},signUp,signIn,resetPassword,logout,getActiveProducts,createOrder,listMyOrders,listAllProducts,adminListOrders,saveProduct,setProductActive,updateOrderStatus,listCustomerRegistrations,decideCustomerRegistration,listShopkeeperCoupons,saveShopkeeperCoupon,deleteShopkeeperCoupon,submitAccountRequest,listAccountRequests,rejectAccountRequest,inviteAccountRequest,listNormalCustomers,setNormalCustomerStatus,manageShopkeeperUser,listShopkeeperPageAccess,saveShopkeeperPageAccess};
 window.dispatchEvent(new CustomEvent("shopkeeper:backend-ready",{detail:{configured}}));
