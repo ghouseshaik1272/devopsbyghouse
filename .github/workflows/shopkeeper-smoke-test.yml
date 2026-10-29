@@ -41,3 +41,13 @@ jobs:
             fi
             echo "OK ($code): $url"
           done
+
+          echo "Checking the deployed customer-app tag bar"
+          curl --location --silent --show-error --fail --max-time 30 "https://devopsbyghouse.co.in/shopkeeper/app.html" -o /tmp/shopkeeper-app.html
+          for expected in 'id="shopkeeperTags"' 'Storekeeper' 'Store Admin' 'Super Admin' 'Low Stock' 'Pending Orders' 'New Customers' 'Store Open' 'Notifications' 'Reports'; do
+            if ! grep -Fq "$expected" /tmp/shopkeeper-app.html; then
+              echo "::error::Missing expected Shopkeeper tag feature in live app: $expected"
+              exit 1
+            fi
+            echo "Verified live source includes: $expected"
+          done
