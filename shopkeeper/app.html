@@ -31,7 +31,7 @@ async function renderShopkeeperTags(){
   else if(admin||access.admin_dashboard)role="Store Admin";
   else if(access.own_orders)role="Customer";
   const roleTags=tag(role,"role");
-  const shortcuts=pageLinks.filter(x=>superadmin||access[x.page]).map(x=>tag(x.label,"nav",x.href)).join("");
+  const shortcuts=pageLinks.filter(x=>(superadmin||access.admin_dashboard)&& (superadmin||access[x.page])).map(x=>tag(x.label,"nav",x.href)).join("");
   let statuses="";
   if(catalogLoaded){
    const low=products.filter(p=>Number(p.stock)<=5).length;
