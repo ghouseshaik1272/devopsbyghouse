@@ -55,7 +55,8 @@ $("hubSearch").addEventListener("input",refreshHub);
 $("hubGrid").addEventListener("click",e=>{const card=e.target.closest("[data-hub-tab]");if(!card)return;e.preventDefault();showTab(card.dataset.hubTab);history.replaceState(null,"","#"+card.dataset.hubTab);window.scrollTo({top:0,behavior:"smooth"})});
 function showTab(name){document.querySelectorAll("#superTabs .tab").forEach(b=>b.classList.toggle("active",b.dataset.tab===name));document.querySelectorAll(".tabpanel").forEach(p=>p.style.display="none");const ids={overview:"overviewPanel",registrations:"superWorkspace",requests:"accountRequestWorkspace",users:"roleWorkspace",permissions:"permissionsWorkspace",coupons:"couponWorkspace",platform:"platformPanel",audit:"auditPanel"};const panel=$(ids[name]);if(panel)panel.style.display=""}
 $("superTabs").addEventListener("click",e=>{const b=e.target.closest("[data-tab]");if(b){showTab(b.dataset.tab);history.replaceState(null,"","#"+b.dataset.tab);}});
-\nlet knownRequestIds=new Set();
+
+let knownRequestIds=new Set();
 let requestsInitialized=false;
 async function loadRequests(notifyNew=false){
  try{
