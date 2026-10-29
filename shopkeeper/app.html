@@ -14,8 +14,8 @@ const pageLinks=[
  {page:"inventory",label:"Inventory",href:"admin.html#products"},
  {page:"orders",label:"Orders",href:"admin.html#orders"},
  {page:"customer_details",label:"Customers",href:"admin.html#customers"},
- {page:"orders",label:"Notifications",href:"superadmin.html#auditPanel"},
- {page:"platform_controls",label:"Settings",href:"superadmin.html#platformPanel"},
+ {page:"orders",label:"Notifications",href:"superadmin.html#audit"},
+ {page:"platform_controls",label:"Settings",href:"superadmin.html#platform"},
  {page:"audit_logs",label:"Reports",href:"superadmin.html#auditPanel"}
 ];
 function tag(label,kind="nav",href="",count=null){const content=esc(label)+(count===null?"":' <span class="count">'+count+'</span>');return href?'<a class="tag '+kind+'" href="'+href+'">'+content+'</a>':'<span class="tag '+kind+'">'+content+'</span>'}
