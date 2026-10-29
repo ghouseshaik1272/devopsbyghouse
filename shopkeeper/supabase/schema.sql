@@ -37,7 +37,7 @@ create table if not exists public.shopkeeper_customer_access (
 );
 alter table public.shopkeeper_customer_access enable row level security;
 revoke all on public.shopkeeper_customer_access from anon, authenticated;
-grant select on public.shopkeeper_customer_access to authenticated;
+grant select, insert, update, delete on public.shopkeeper_customer_access to authenticated;
 drop policy if exists "Customers see own access status" on public.shopkeeper_customer_access;
 create policy "Customers see own access status" on public.shopkeeper_customer_access for select to authenticated using (user_id = (select auth.uid()) or public.is_shopkeeper_superadmin());
 drop policy if exists "Superadmins manage customer access" on public.shopkeeper_customer_access;
