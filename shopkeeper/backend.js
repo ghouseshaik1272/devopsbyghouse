@@ -46,8 +46,27 @@ export async function submitAccountRequest({fullName,email,phone,message=""}) {
   if(error) throw error;
   return true;
 }
+export async function listAccountRequests() {
+  if(!(await isSuperadmin())) throw new Error("Superadmin access is required.");
+  const {data,error}=await supabase.from("shopkeeper_account_requests").select("*").order("created_at",{ascending:false});
+  if(error) throw error;
+  return data||[];
+}
+export async function rejectAccountRequest(requestId) {
+  if(!(await isSuperadmin())) throw new Error("Superadmin access is required.");
+  const {data,error}=await supabase.from("shopkeeper_account_requests").update({status:"rejected",handled_at:new Date().toISOString(),handled_by:currentUser.id}).eq("id",requestId).eq("status","pending").select("id").maybeSingle();
+  if(error) throw error;
+  if(!data) throw new Error("Request was already handled or no longer exists.");
+}
+export async function inviteAccountRequest(requestId) {
+  if(!(await isSuperadmin())) throw new Error("Superadmin access is required.");
+  const {data,error}=await supabase.functions.invoke("shopkeeper-create-user",{body:{requestId}});
+  if(error) throw error;
+  if(data?.error) throw new Error(data.error);
+  return data;
+}
 export async function listCustomerRegistrations(){if(!(await isSuperadmin()))throw new Error("Superadmin access is required.");const {data,error}=await supabase.from("shopkeeper_customer_access").select("*").order("created_at",{ascending:false});if(error)throw error;return data||[];}
 export async function decideCustomerRegistration(userId,status){if(!(await isSuperadmin()))throw new Error("Superadmin access is required.");if(!["approved","rejected","suspended","pending"].includes(status))throw new Error("Invalid registration status.");const {error}=await supabase.from("shopkeeper_customer_access").update({status,updated_at:new Date().toISOString()}).eq("user_id",userId);if(error)throw error;}
 export {supabase as db, supabase as auth};
-window.ShopkeeperBackend={configured,get currentUser(){return currentUser;},signUp,signIn,resetPassword,logout,getActiveProducts,createOrder,listMyOrders,listAllProducts,adminListOrders,saveProduct,setProductActive,updateOrderStatus,listCustomerRegistrations,decideCustomerRegistration,submitAccountRequest};
+window.ShopkeeperBackend={configured,get currentUser(){return currentUser;},signUp,signIn,resetPassword,logout,getActiveProducts,createOrder,listMyOrders,listAllProducts,adminListOrders,saveProduct,setProductActive,updateOrderStatus,listCustomerRegistrations,decideCustomerRegistration,submitAccountRequest,listAccountRequests,rejectAccountRequest,inviteAccountRequest};
 window.dispatchEvent(new CustomEvent("shopkeeper:backend-ready",{detail:{configured}}));
