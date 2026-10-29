@@ -14,13 +14,14 @@ The admin page includes controls for product management, order status, and ordin
 ## Account creation
 User identities must be created through Supabase Auth invitations or a protected server-side function, never by inserting directly into `auth.users`.
 - The current `shopkeeper-create-user` Edge Function handles public account requests and is superadmin-only.
-- Admin-initiated invitations, admin edits to Auth profile details, and permanent account deletion still need a separate protected backend function and UI.
+- Added a separate `shopkeeper-user-management` Edge Function source with protected operations for normal-user invitations, profile edits, access status changes, deletion, and superadmin-only promotion to admin. The Admin console now exposes invitation, edit, suspend/approve, and delete actions for ordinary users.
+- This new function must be deployed in Supabase before those controls work. Admin promotion UI in the Superadmin console and full role-management UI remain to be completed.
 - Do not grant service-role credentials to browser code or store them in GitHub.
 
 ## Validation required
 - [ ] Run latest schema/migration in Supabase and confirm success.
 - [ ] Verify superadmin and admin roles in the database.
-- [ ] Deploy the Edge Function and verify invitation emails.
+- [ ] Deploy both `shopkeeper-create-user` and `shopkeeper-user-management` Edge Functions and verify invitation emails.
 - [ ] Test admin can approve/suspend a normal customer but cannot change superadmin access.
 - [ ] Test admin product and order management.
 - [ ] Test approved and unapproved sign-in/checkout.
