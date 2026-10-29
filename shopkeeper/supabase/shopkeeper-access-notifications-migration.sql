@@ -58,7 +58,8 @@ create index if not exists shopkeeper_notifications_role_created_idx
  on public.shopkeeper_notifications(recipient_role, created_at desc);
 alter table public.shopkeeper_notifications enable row level security;
 revoke all on public.shopkeeper_notifications from public, anon, authenticated;
-grant select, update on public.shopkeeper_notifications to authenticated;
+grant select on public.shopkeeper_notifications to authenticated;
+grant update (read_at) on public.shopkeeper_notifications to authenticated;
 drop policy if exists "Recipients read Shopkeeper notifications" on public.shopkeeper_notifications;
 create policy "Recipients read Shopkeeper notifications" on public.shopkeeper_notifications for select to authenticated
  using (
