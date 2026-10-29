@@ -232,7 +232,7 @@ begin
    coalesce(new.user_id,old.user_id),
    jsonb_build_object('role',case when tg_op='DELETE' then old.role else new.role end,
                       'allowed_pages',case when tg_op='DELETE' then old.allowed_pages else new.allowed_pages end));
- return coalesce(new,old);
+ if tg_op='DELETE' then return old; else return new; end if;
 end $$;
 drop trigger if exists shopkeeper_page_access_audit on public.shopkeeper_user_page_access;
 create trigger shopkeeper_page_access_audit after insert or update or delete on public.shopkeeper_user_page_access
