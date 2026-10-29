@@ -247,3 +247,41 @@ end $$;
 drop trigger if exists shopkeeper_page_access_audit on public.shopkeeper_user_page_access;
 create trigger shopkeeper_page_access_audit after insert or update or delete on public.shopkeeper_user_page_access
 for each row execute function public.shopkeeper_audit_page_access_change();
+
+
+-- Reinstall order RPC with a database-enforced customer-app permission check.
+create or replace function public.create_shopkeeper_order(
+  p_customer_name text, p_phone text, p_address text, p_area text, p_items jsonb
+) returns jsonb language plpgsql security definer set search_path = ''
+as $$
+declare
+  v_uid uuid := auth.uid(); v_item jsonb; v_product public.shopkeeper_products%rowtype;
+  v_qty integer; v_subtotal numeric(12,2) := 0; v_items jsonb := '[]'::jsonb;
+  v_order_id uuid; v_delivery_fee numeric(12,2) := 0;
+begin
+  if v_uid is null then raise exception 'Please sign in before placing an order.'; end if;
+  if not public.shopkeeper_has_page_access('customer_app') then raise exception 'Your account does not have access to the customer app.'; end if;
+  if not public.is_shopkeeper_customer_approved() and not public.is_shopkeeper_admin() then raise exception 'Your registration is pending approval.'; end if;
+  if length(trim(coalesce(p_customer_name,''))) not between 1 and 100
+     or length(trim(coalesce(p_phone,''))) not between 5 and 30
+     or length(trim(coalesce(p_address,''))) not between 3 and 500
+     or length(trim(coalesce(p_area,''))) not between 1 and 120 then raise exception 'Complete all delivery details.'; end if;
+  if jsonb_typeof(p_items) <> 'array' or jsonb_array_length(p_items) not between 1 and 50 then raise exception 'Cart is empty or too large.'; end if;
+  for v_item in select value from jsonb_array_elements(p_items) loop
+    if coalesce(v_item->>'product_id','') !~ '^[0-9a-fA-F-]{36}$' or coalesce(v_item->>'quantity','') !~ '^[0-9]{1,2}$' then raise exception 'Invalid cart item.'; end if;
+    v_qty := (v_item->>'quantity')::integer;
+    if v_qty < 1 or v_qty > 99 then raise exception 'Invalid quantity.'; end if;
+    select * into v_product from public.shopkeeper_products where id = (v_item->>'product_id')::uuid and active = true for update;
+    if not found then raise exception 'A product is unavailable.'; end if;
+    if v_product.stock < v_qty then raise exception 'Insufficient stock for %.', v_product.name; end if;
+    update public.shopkeeper_products set stock = stock - v_qty, updated_at = now() where id = v_product.id;
+    v_subtotal := v_subtotal + v_product.price * v_qty;
+    v_items := v_items || jsonb_build_array(jsonb_build_object('productId',v_product.id,'name',v_product.name,'quantity',v_qty,'unitPrice',v_product.price,'unit',v_product.unit,'emoji',v_product.emoji));
+  end loop;
+  insert into public.shopkeeper_orders(user_id,customer_name,phone,address,area,items,subtotal,delivery_fee,total,status,payment_status,payment_method)
+  values(v_uid,trim(p_customer_name),trim(p_phone),trim(p_address),trim(p_area),v_items,v_subtotal,v_delivery_fee,v_subtotal+v_delivery_fee,'pending','unpaid','cod')
+  returning id into v_order_id;
+  return jsonb_build_object('id',v_order_id,'total',v_subtotal+v_delivery_fee);
+end; $$;
+revoke all on function public.create_shopkeeper_order(text,text,text,text,jsonb) from public, anon;
+grant execute on function public.create_shopkeeper_order(text,text,text,text,jsonb) to authenticated;
