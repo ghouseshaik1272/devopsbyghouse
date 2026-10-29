@@ -8,13 +8,74 @@ create table if not exists public.shopkeeper_admins (
 alter table public.shopkeeper_admins enable row level security;
 revoke all on public.shopkeeper_admins from anon, authenticated;
 
+create table if not exists public.shopkeeper_superadmins (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now()
+);
+alter table public.shopkeeper_superadmins enable row level security;
+revoke all on public.shopkeeper_superadmins from anon, authenticated;
+
+create or replace function public.is_shopkeeper_superadmin()
+returns boolean language sql stable security definer set search_path = ''
+as $$ select exists(select 1 from public.shopkeeper_superadmins s where s.user_id = (select auth.uid())); $$;
+revoke all on function public.is_shopkeeper_superadmin() from public;
+grant execute on function public.is_shopkeeper_superadmin() to authenticated;
+
 create or replace function public.is_shopkeeper_admin()
 returns boolean language sql stable security definer set search_path = ''
-as $$
-  select exists(select 1 from public.shopkeeper_admins a where a.user_id = (select auth.uid()));
-$$;
+as $$ select exists(select 1 from public.shopkeeper_admins a where a.user_id = (select auth.uid())) or public.is_shopkeeper_superadmin(); $$;
 revoke all on function public.is_shopkeeper_admin() from public;
 grant execute on function public.is_shopkeeper_admin() to authenticated;
+
+create table if not exists public.shopkeeper_customer_access (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  email text not null default '',
+  display_name text not null default '',
+  status text not null default 'pending' check (status in ('pending','approved','rejected','suspended')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+alter table public.shopkeeper_customer_access enable row level security;
+revoke all on public.shopkeeper_customer_access from anon, authenticated;
+grant select on public.shopkeeper_customer_access to authenticated;
+drop policy if exists "Customers see own access status" on public.shopkeeper_customer_access;
+create policy "Customers see own access status" on public.shopkeeper_customer_access for select to authenticated using (user_id = (select auth.uid()) or public.is_shopkeeper_superadmin());
+drop policy if exists "Superadmins manage customer access" on public.shopkeeper_customer_access;
+create policy "Superadmins manage customer access" on public.shopkeeper_customer_access for all to authenticated using (public.is_shopkeeper_superadmin()) with check (public.is_shopkeeper_superadmin());
+
+create or replace function public.is_shopkeeper_customer_approved()
+returns boolean language sql stable security definer set search_path = ''
+as $$ select exists(select 1 from public.shopkeeper_customer_access a where a.user_id = (select auth.uid()) and a.status = 'approved'); $$;
+revoke all on function public.is_shopkeeper_customer_approved() from public;
+grant execute on function public.is_shopkeeper_customer_approved() to authenticated;
+
+create or replace function public.shopkeeper_register_customer()
+returns void language plpgsql security definer set search_path = ''
+as $$
+declare v_uid uuid := auth.uid();
+begin
+ if v_uid is null then raise exception 'Sign in to register your customer profile.'; end if;
+ insert into public.shopkeeper_customer_access(user_id,email,display_name,status)
+ select u.id, coalesce(u.email,''), coalesce(u.raw_user_meta_data->>'display_name',''), 'pending'
+ from auth.users u where u.id = v_uid
+ on conflict(user_id) do nothing;
+end; $$;
+revoke all on function public.shopkeeper_register_customer() from public, anon;
+grant execute on function public.shopkeeper_register_customer() to authenticated;
+
+-- New auth accounts are queued for approval. A trigger works even when email confirmation is enabled.
+create or replace function public.shopkeeper_on_auth_user_created()
+returns trigger language plpgsql security definer set search_path = ''
+as $$
+begin
+ insert into public.shopkeeper_customer_access(user_id,email,display_name,status)
+ values(new.id, coalesce(new.email,''), coalesce(new.raw_user_meta_data->>'display_name',''), 'pending')
+ on conflict(user_id) do nothing;
+ return new;
+end; $$;
+drop trigger if exists shopkeeper_auth_user_created on auth.users;
+create trigger shopkeeper_auth_user_created after insert on auth.users
+for each row execute function public.shopkeeper_on_auth_user_created();
 
 create table if not exists public.shopkeeper_products (
   id uuid primary key default gen_random_uuid(),
@@ -42,19 +103,14 @@ create policy "Admins manage products" on public.shopkeeper_products for all to 
 create table if not exists public.shopkeeper_orders (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete restrict,
-  customer_name text not null,
-  phone text not null,
-  address text not null,
-  area text not null,
-  items jsonb not null,
-  subtotal numeric(12,2) not null check (subtotal >= 0),
+  customer_name text not null, phone text not null, address text not null, area text not null,
+  items jsonb not null, subtotal numeric(12,2) not null check (subtotal >= 0),
   delivery_fee numeric(12,2) not null default 0 check (delivery_fee >= 0),
   total numeric(12,2) not null check (total >= 0),
   status text not null default 'pending' check (status in ('pending','confirmed','packed','out_for_delivery','delivered','cancelled')),
   payment_status text not null default 'unpaid' check (payment_status in ('unpaid','paid','refunded')),
   payment_method text not null default 'cod' check (payment_method = 'cod'),
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  created_at timestamptz not null default now(), updated_at timestamptz not null default now()
 );
 alter table public.shopkeeper_orders enable row level security;
 revoke all on public.shopkeeper_orders from anon, authenticated;
@@ -69,22 +125,16 @@ create or replace function public.create_shopkeeper_order(
 ) returns jsonb language plpgsql security definer set search_path = ''
 as $$
 declare
-  v_uid uuid := auth.uid();
-  v_item jsonb;
-  v_product public.shopkeeper_products%rowtype;
-  v_qty integer;
-  v_subtotal numeric(12,2) := 0;
-  v_items jsonb := '[]'::jsonb;
-  v_order_id uuid;
-  v_delivery_fee numeric(12,2) := 0;
+  v_uid uuid := auth.uid(); v_item jsonb; v_product public.shopkeeper_products%rowtype;
+  v_qty integer; v_subtotal numeric(12,2) := 0; v_items jsonb := '[]'::jsonb;
+  v_order_id uuid; v_delivery_fee numeric(12,2) := 0;
 begin
   if v_uid is null then raise exception 'Please sign in before placing an order.'; end if;
+  if not public.is_shopkeeper_customer_approved() and not public.is_shopkeeper_admin() then raise exception 'Your registration is pending approval.'; end if;
   if length(trim(coalesce(p_customer_name,''))) not between 1 and 100
      or length(trim(coalesce(p_phone,''))) not between 5 and 30
      or length(trim(coalesce(p_address,''))) not between 3 and 500
-     or length(trim(coalesce(p_area,''))) not between 1 and 120 then
-    raise exception 'Complete all delivery details.';
-  end if;
+     or length(trim(coalesce(p_area,''))) not between 1 and 120 then raise exception 'Complete all delivery details.'; end if;
   if jsonb_typeof(p_items) <> 'array' or jsonb_array_length(p_items) not between 1 and 50 then raise exception 'Cart is empty or too large.'; end if;
   for v_item in select value from jsonb_array_elements(p_items) loop
     if coalesce(v_item->>'product_id','') !~ '^[0-9a-fA-F-]{36}$' or coalesce(v_item->>'quantity','') !~ '^[0-9]{1,2}$' then raise exception 'Invalid cart item.'; end if;
@@ -101,7 +151,6 @@ begin
   values(v_uid,trim(p_customer_name),trim(p_phone),trim(p_address),trim(p_area),v_items,v_subtotal,v_delivery_fee,v_subtotal+v_delivery_fee,'pending','unpaid','cod')
   returning id into v_order_id;
   return jsonb_build_object('id',v_order_id,'total',v_subtotal+v_delivery_fee);
-end;
-$$;
+end; $$;
 revoke all on function public.create_shopkeeper_order(text,text,text,text,jsonb) from public, anon;
 grant execute on function public.create_shopkeeper_order(text,text,text,text,jsonb) to authenticated;
