@@ -9,8 +9,22 @@
 <section class="card"><h2>Production launch checklist</h2><div class="line"><span>Verified login + role-based access rules</span><span class="status">Pending</span></div><div class="line"><span>Persistent product, stock and order database</span><span class="status">Pending</span></div><div class="line"><span>Payment provider + verified server webhooks</span><span class="status">Pending</span></div><div class="line"><span>Privacy policy, terms, refund and delivery policies</span><span class="status">Pending</span></div><div class="line"><span>Deployment and security tests</span><span class="status">Pending</span></div></section></div><p class="muted" style="margin-top:22px">Shopkeeper · MultiCloud Navigator initiative · Demo data only</p></main><section id="superLogin" class="card"><h2>Superadmin sign in</h2><p class="muted">Use your registered Supabase account. Your account must first be added to shopkeeper_superadmins.</p><form id="superForm"><label>Email<input id="superEmail" type="email" required autocomplete="username"></label><br><label>Password<input id="superPassword" type="password" required autocomplete="current-password"></label><br><button class="btn dark" type="submit">Sign in</button></form><p id="superMessage" class="muted"></p></section><section id="superWorkspace" class="card" style="display:none"><div class="top"><h2>Customer registrations</h2><div><button class="btn green" id="reloadCustomers">Refresh</button> <button class="btn dark" id="superLogout">Sign out</button></div></div><p class="muted">Approve, reject, or suspend registered customer accounts. New signups appear after the schema is installed.</p><div style="overflow:auto"><table><thead><tr><th>Name</th><th>Email</th><th>Registered</th><th>Status</th><th>Actions</th></tr></thead><tbody id="customerRows"><tr><td colspan="5">Sign in to load registrations.</td></tr></tbody></table></div><p id="workspaceMessage" class="muted"></p></section>
 <section id="roleWorkspace" class="card" style="display:none;margin-top:16px"><div class="top"><h2>Platform user roles</h2><button class="btn green" id="reloadRoles">Refresh roles</button></div><p class="muted">Only superadmins can promote users to admin or remove admin roles. Superadmin accounts are protected.</p><div style="overflow:auto"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Access</th><th>Actions</th></tr></thead><tbody id="roleRows"><tr><td colspan="5">Sign in to load users.</td></tr></tbody></table></div><p id="roleMessage" class="muted"></p></section>
 <section id="accountRequestWorkspace" class="card" style="display:none;margin-top:16px"><div class="top"><h2>Account creation requests <span id="requestPendingCount" class="status">0 pending</span></h2><button class="btn green" id="reloadRequests">Refresh requests</button></div><p class="muted">Review requests from the public Shopkeeper storefront. Inviting a user sends an email link; the user sets their own password.</p><div style="overflow:auto"><table><thead><tr><th>Applicant</th><th>Contact</th><th>Request</th><th>Submitted</th><th>Status</th><th>Actions</th></tr></thead><tbody id="accountRequestRows"><tr><td colspan="6">Sign in to load requests.</td></tr></tbody></table></div><p id="requestWorkspaceMessage" class="muted" role="status"></p></section>
+<section id="couponWorkspace" class="card" style="display:none;margin-top:16px">
+<div class="top"><h2>Coupon management</h2><button class="btn green" id="reloadCoupons">Refresh coupons</button></div>
+<p class="muted">Superadmin-only. Enter categories where this coupon does NOT apply, separated by commas. Leave blank or enter NULL for no category restrictions. Coupon codes are saved in uppercase.</p>
+<form id="couponForm" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:14px 0">
+<input type="hidden" id="couponId">
+<label>Coupon name<input id="couponName" required minlength="2" maxlength="100" placeholder="e.g. Festival Offer"></label>
+<label>Coupon code<div style="display:flex;gap:6px"><input id="couponCode" required maxlength="40" pattern="[A-Za-z0-9_-]{3,40}" placeholder="e.g. FESTIVE10" style="min-width:0;flex:1"><button class="btn green" id="generateCouponCode" type="button">Generate</button></div></label>
+<label>Valid till<input id="couponValidTill" type="date" required></label>
+<label>Excluded categories<input id="couponExcluded" placeholder="Clothing, Electronics"></label>
+<div style="display:flex;gap:8px;align-items:end;flex-wrap:wrap"><button class="btn dark" type="submit" id="saveCoupon">Create coupon</button><button class="btn green" type="button" id="cancelCouponEdit" style="display:none">Cancel edit</button></div>
+</form>
+<p id="couponMessage" class="muted" role="status"></p>
+<div style="overflow:auto"><table><thead><tr><th>Name</th><th>Code</th><th>Valid till</th><th>Excluded categories</th><th>Status</th><th>Actions</th></tr></thead><tbody id="couponRows"><tr><td colspan="6">Sign in as superadmin to manage coupons.</td></tr></tbody></table></div>
+</section>
 </main><script type="module">
-import {configured,auth,onAuthStateChanged,signIn,logout,listCustomerRegistrations,decideCustomerRegistration,listAccountRequests,rejectAccountRequest,inviteAccountRequest,manageShopkeeperUser} from "./backend.js";
+import {configured,auth,onAuthStateChanged,signIn,logout,listCustomerRegistrations,decideCustomerRegistration,listAccountRequests,rejectAccountRequest,inviteAccountRequest,manageShopkeeperUser,listShopkeeperCoupons,saveShopkeeperCoupon,deleteShopkeeperCoupon} from "./backend.js";
 const $=id=>document.getElementById(id);
 document.querySelector(".stats")?.remove();document.querySelector(".columns")?.remove();
 const warning=document.querySelector(".warning");if(warning)warning.textContent="Protected superadmin console. Registration actions require the superadmin role in Supabase and the latest database schema.";
@@ -33,10 +47,52 @@ async function loadRequests(){
   msg("requestWorkspaceMessage","Loaded "+rows.length+" account requests.");
  }catch(e){msg("requestWorkspaceMessage","Could not load account requests: "+e.message)}
 }
+
+function resetCouponForm(){
+ $("couponForm").reset();$("couponId").value="";$("saveCoupon").textContent="Create coupon";$("cancelCouponEdit").style.display="none";
+}
+async function loadCoupons(){
+ try{
+  const rows=await listShopkeeperCoupons();
+  $("couponRows").innerHTML=rows.map(c=>{const expired=c.valid_till<new Date().toISOString().slice(0,10);return '<tr><td>'+esc(c.name)+'</td><td><b>'+esc(c.code)+'</b></td><td>'+esc(c.valid_till)+'</td><td>'+esc((c.excluded_categories||[]).join(", ")||"None")+'</td><td><span class="status '+(expired?"no":"ok")+'">'+(expired?"Expired":"Valid")+'</span></td><td><div class="actions"><button class="btn green" data-edit-coupon="'+esc(c.id)+'">Modify</button><button class="btn" data-delete-coupon="'+esc(c.id)+'">Delete</button></div></td></tr>'}).join("")||'<tr><td colspan="6">No coupons created yet.</td></tr>';
+  msg("couponMessage","Loaded "+rows.length+" coupons.");
+ }catch(e){msg("couponMessage","Could not load coupons: "+e.message)}
+}
+$("generateCouponCode").addEventListener("click",()=>{
+ const alphabet="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";let code="";
+ if(globalThis.crypto?.getRandomValues){const bytes=new Uint8Array(10);crypto.getRandomValues(bytes);code=Array.from(bytes,b=>alphabet[b%alphabet.length]).join("");}
+ else code="SHOP"+Math.random().toString(36).slice(2,10).toUpperCase();
+ $("couponCode").value=code;
+});
+$("couponForm").addEventListener("submit",async e=>{
+ e.preventDefault();
+ try{
+  const id=$("couponId").value||undefined;
+  const categories=$("couponExcluded").value.trim();
+  const coupon={id,name:$("couponName").value,code:$("couponCode").value,valid_till:$("couponValidTill").value,excluded_categories:(!categories||categories.toUpperCase()==="NULL")?[]:categories.split(",").map(x=>x.trim()).filter(Boolean)};
+  msg("couponMessage",id?"Saving coupon changes…":"Creating coupon…");
+  await saveShopkeeperCoupon(coupon);resetCouponForm();await loadCoupons();msg("couponMessage",id?"Coupon updated successfully.":"Coupon created successfully.");
+ }catch(err){msg("couponMessage","Could not save coupon: "+err.message)}
+});
+$("cancelCouponEdit").addEventListener("click",resetCouponForm);
+$("reloadCoupons").addEventListener("click",loadCoupons);
+$("couponRows").addEventListener("click",async e=>{
+ const edit=e.target.closest("[data-edit-coupon]"),del=e.target.closest("[data-delete-coupon]");
+ if(edit){
+  try{const c=(await listShopkeeperCoupons()).find(x=>x.id===edit.dataset.editCoupon);if(!c)throw new Error("Coupon not found.");
+   $("couponId").value=c.id;$("couponName").value=c.name;$("couponCode").value=c.code;$("couponValidTill").value=c.valid_till;$("couponExcluded").value=(c.excluded_categories||[]).join(", ");$("saveCoupon").textContent="Save changes";$("cancelCouponEdit").style.display="inline-block";$("couponName").focus();msg("couponMessage","Editing "+c.code+".");
+  }catch(err){msg("couponMessage","Could not edit coupon: "+err.message)}
+ }else if(del){
+  if(!confirm("Permanently delete this coupon?"))return;
+  try{await deleteShopkeeperCoupon(del.dataset.deleteCoupon);if($("couponId").value===del.dataset.deleteCoupon)resetCouponForm();await loadCoupons();msg("couponMessage","Coupon deleted.");}
+  catch(err){msg("couponMessage","Could not delete coupon: "+err.message)}
+ }
+});
+
 function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 if(!configured){msg("superMessage","Supabase configuration is missing.");}
 $("superForm").addEventListener("submit",async e=>{e.preventDefault();try{await signIn({email:$("superEmail").value,password:$("superPassword").value});}catch(err){msg("superMessage","Sign in failed: "+err.message)}});
-onAuthStateChanged(auth,async user=>{if(!user){$("superLogin").style.display="";$("superWorkspace").style.display="none";$("accountRequestWorkspace").style.display="none";$("roleWorkspace").style.display="none";return;}try{const result=await user.getIdTokenResult();if(!result.claims.shopkeeperSuperadmin)throw new Error("This account is not authorized as a superadmin.");$("superLogin").style.display="none";$("superWorkspace").style.display="";$("accountRequestWorkspace").style.display="";$("roleWorkspace").style.display="";await Promise.all([load(),loadRequests(),loadRoles()]);}catch(err){$("superLogin").style.display="";$("superWorkspace").style.display="none";msg("superMessage",err.message);}});
+onAuthStateChanged(auth,async user=>{if(!user){$("superLogin").style.display="";$("superWorkspace").style.display="none";$("accountRequestWorkspace").style.display="none";$("roleWorkspace").style.display="none";$("couponWorkspace").style.display="none";return;}try{const result=await user.getIdTokenResult();if(!result.claims.shopkeeperSuperadmin)throw new Error("This account is not authorized as a superadmin.");$("superLogin").style.display="none";$("superWorkspace").style.display="";$("accountRequestWorkspace").style.display="";$("roleWorkspace").style.display="";$("couponWorkspace").style.display="";await Promise.all([load(),loadRequests(),loadRoles(),loadCoupons()]);}catch(err){$("superLogin").style.display="";$("superWorkspace").style.display="none";msg("superMessage",err.message);}});
 $("reloadCustomers").onclick=load;$("reloadRequests").onclick=loadRequests;$("superLogout").onclick=()=>logout().catch(e=>msg("workspaceMessage",e.message));
 $("reloadRoles").onclick=loadRoles;
 $("roleRows").addEventListener("click",async e=>{
