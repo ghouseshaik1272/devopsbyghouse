@@ -8,7 +8,7 @@
 <section class="card"><h2>Roles to implement</h2><div class="line"><span><b>Superadmin</b><br><span class="muted">Manage platform, roles and configuration</span></span><span class="status no">Server authorization required</span></div><div class="line"><span><b>Store admin</b><br><span class="muted">Products, inventory, orders and delivery settings</span></span><span class="status no">Server authorization required</span></div><div class="line"><span><b>Customer</b><br><span class="muted">Account, addresses, cart and order history</span></span><span class="status no">Authentication required</span></div></section>
 <section class="card"><h2>Production launch checklist</h2><div class="line"><span>Verified login + role-based access rules</span><span class="status">Pending</span></div><div class="line"><span>Persistent product, stock and order database</span><span class="status">Pending</span></div><div class="line"><span>Payment provider + verified server webhooks</span><span class="status">Pending</span></div><div class="line"><span>Privacy policy, terms, refund and delivery policies</span><span class="status">Pending</span></div><div class="line"><span>Deployment and security tests</span><span class="status">Pending</span></div></section></div><p class="muted" style="margin-top:22px">Shopkeeper · MultiCloud Navigator initiative · Demo data only</p></main><section id="superLogin" class="card"><h2>Superadmin sign in</h2><p class="muted">Use your registered Supabase account. Your account must first be added to shopkeeper_superadmins.</p><form id="superForm"><label>Email<input id="superEmail" type="email" required autocomplete="username"></label><br><label>Password<input id="superPassword" type="password" required autocomplete="current-password"></label><br><button class="btn dark" type="submit">Sign in</button></form><p id="superMessage" class="muted"></p></section><section id="superWorkspace" class="card" style="display:none"><div class="top"><h2>Customer registrations</h2><div><button class="btn green" id="reloadCustomers">Refresh</button> <button class="btn dark" id="superLogout">Sign out</button></div></div><p class="muted">Approve, reject, or suspend registered customer accounts. New signups appear after the schema is installed.</p><div style="overflow:auto"><table><thead><tr><th>Name</th><th>Email</th><th>Registered</th><th>Status</th><th>Actions</th></tr></thead><tbody id="customerRows"><tr><td colspan="5">Sign in to load registrations.</td></tr></tbody></table></div><p id="workspaceMessage" class="muted"></p></section>
 <section id="roleWorkspace" class="card" style="display:none;margin-top:16px"><div class="top"><h2>Platform user roles</h2><button class="btn green" id="reloadRoles">Refresh roles</button></div><p class="muted">Only superadmins can promote users to admin or remove admin roles. Superadmin accounts are protected.</p><div style="overflow:auto"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Access</th><th>Actions</th></tr></thead><tbody id="roleRows"><tr><td colspan="5">Sign in to load users.</td></tr></tbody></table></div><p id="roleMessage" class="muted"></p></section>
-<section id="accountRequestWorkspace" class="card" style="display:none;margin-top:16px"><div class="top"><h2>Account creation requests <span id="requestPendingCount" class="status">0 pending</span></h2><button class="btn green" id="reloadRequests">Refresh requests</button></div><p class="muted">Review requests from the public Shopkeeper storefront. Inviting a user sends an email link; the user sets their own password.</p><div style="overflow:auto"><table><thead><tr><th>Applicant</th><th>Contact</th><th>Request</th><th>Submitted</th><th>Status</th><th>Actions</th></tr></thead><tbody id="accountRequestRows"><tr><td colspan="6">Sign in to load requests.</td></tr></tbody></table></div><p id="requestWorkspaceMessage" class="muted" role="status"></p></section>
+<section id="accountRequestWorkspace" class="card" style="display:none;margin-top:16px"><div class="top"><h2>Account creation requests <span id="requestPendingCount" class="status">0 pending</span></h2><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="enableRequestNotifications" type="button">Enable browser notifications</button><button class="btn green" id="reloadRequests">Refresh requests</button></div></div><p class="muted">Review requests from the public Shopkeeper storefront. New requests are checked automatically every 30 seconds while this dashboard is open. Browser notifications require permission. Inviting a user sends an email link; the user sets their own password.</p><p id="requestAlert" class="status" role="status" style="display:none"></p><div style="overflow:auto"><table><thead><tr><th>Applicant</th><th>Contact</th><th>Request</th><th>Submitted</th><th>Status</th><th>Actions</th></tr></thead><tbody id="accountRequestRows"><tr><td colspan="6">Sign in to load requests.</td></tr></tbody></table></div><p id="requestWorkspaceMessage" class="muted" role="status"></p></section>
 <section id="couponWorkspace" class="card" style="display:none;margin-top:16px">
 <div class="top"><h2>Coupon management</h2><button class="btn green" id="reloadCoupons">Refresh coupons</button></div>
 <p class="muted">Superadmin-only. Enter categories where this coupon does NOT apply, separated by commas. Leave blank or enter NULL for no category restrictions. Coupon codes are saved in uppercase.</p>
@@ -38,13 +38,28 @@ async function loadRoles(){
   msg("roleMessage","Loaded "+rows.length+" users.");
  }catch(e){msg("roleMessage","Could not load roles: "+e.message)}
 }
-async function loadRequests(){
+let knownRequestIds=new Set();
+let requestsInitialized=false;
+async function loadRequests(notifyNew=false){
  try{
   const rows=await listAccountRequests();
-  const pending=rows.filter(r=>r.status==="pending").length;
-  $("requestPendingCount").textContent=pending+" pending";
+  const pendingRows=rows.filter(r=>r.status==="pending");
+  const fresh=requestsInitialized&&notifyNew?pendingRows.filter(r=>!knownRequestIds.has(r.id)):[];
+  knownRequestIds=new Set(rows.map(r=>r.id));
+  requestsInitialized=true;
+  $("requestPendingCount").textContent=pendingRows.length+" pending";
   $("accountRequestRows").innerHTML=rows.map(r=>'<tr><td><b>'+esc(r.full_name)+'</b></td><td>'+esc(r.email)+'<br>'+esc(r.phone||"—")+'</td><td>'+esc(r.message||"—")+'</td><td>'+new Date(r.created_at).toLocaleString()+'</td><td><span class="status '+(r.status==="invited"?"ok":r.status==="rejected"?"no":"")+'">'+esc(r.status)+'</span></td><td>'+(r.status==="pending"?'<div class="actions"><button class="btn green" data-invite-request="'+esc(r.id)+'">Invite & approve</button><button class="btn" data-reject-request="'+esc(r.id)+'">Reject</button></div>':"—")+'</td></tr>').join("")||'<tr><td colspan="6">No account requests yet.</td></tr>';
-  msg("requestWorkspaceMessage","Loaded "+rows.length+" account requests.");
+  if(fresh.length){
+   const text=fresh.length===1?"New account request from "+fresh[0].full_name:fresh.length+" new account requests received.";
+   $("requestAlert").textContent="🔔 "+text+" Review the pending requests below.";
+   $("requestAlert").style.display="block";
+   if("Notification" in window && Notification.permission==="granted"){
+    fresh.slice(0,5).forEach(r=>new Notification("Shopkeeper: new account request",{body:r.full_name+" · "+r.email}));
+   }
+   msg("requestWorkspaceMessage",text);
+  }else{
+   msg("requestWorkspaceMessage","Loaded "+rows.length+" account requests. Automatic refresh is enabled.");
+  }
  }catch(e){msg("requestWorkspaceMessage","Could not load account requests: "+e.message)}
 }
 
@@ -93,7 +108,7 @@ function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&l
 if(!configured){msg("superMessage","Supabase configuration is missing.");}
 $("superForm").addEventListener("submit",async e=>{e.preventDefault();try{await signIn({email:$("superEmail").value,password:$("superPassword").value});}catch(err){msg("superMessage","Sign in failed: "+err.message)}});
 onAuthStateChanged(auth,async user=>{if(!user){$("superLogin").style.display="";$("superWorkspace").style.display="none";$("accountRequestWorkspace").style.display="none";$("roleWorkspace").style.display="none";$("couponWorkspace").style.display="none";return;}try{const result=await user.getIdTokenResult();if(!result.claims.shopkeeperSuperadmin)throw new Error("This account is not authorized as a superadmin.");$("superLogin").style.display="none";$("superWorkspace").style.display="";$("accountRequestWorkspace").style.display="";$("roleWorkspace").style.display="";$("couponWorkspace").style.display="";await Promise.all([load(),loadRequests(),loadRoles(),loadCoupons()]);}catch(err){$("superLogin").style.display="";$("superWorkspace").style.display="none";msg("superMessage",err.message);}});
-$("reloadCustomers").onclick=load;$("reloadRequests").onclick=loadRequests;$("superLogout").onclick=()=>logout().catch(e=>msg("workspaceMessage",e.message));
+$("reloadCustomers").onclick=load;$("reloadRequests").onclick=()=>loadRequests(false);$("enableRequestNotifications").onclick=async()=>{if(!("Notification" in window)){msg("requestWorkspaceMessage","Browser notifications are not supported here. Keep the superadmin dashboard open to see in-dashboard alerts.");return;}try{const p=await Notification.requestPermission();msg("requestWorkspaceMessage",p==="granted"?"Browser notifications enabled. New account requests will trigger a notification while this dashboard is open.": "Browser notification permission was not granted; in-dashboard alerts will still appear.");}catch(e){msg("requestWorkspaceMessage","Could not enable notifications: "+e.message)}};setInterval(()=>{if(document.visibilityState==="visible"&&document.getElementById("superWorkspace").style.display!=="none")loadRequests(true)},30000);$("superLogout").onclick=()=>logout().catch(e=>msg("workspaceMessage",e.message));
 $("reloadRoles").onclick=loadRoles;
 $("roleRows").addEventListener("click",async e=>{
  const promote=e.target.closest("[data-promote]"),demote=e.target.closest("[data-demote]");
