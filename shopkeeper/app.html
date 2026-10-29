@@ -26,10 +26,8 @@ async function renderShopkeeperTags(){
   const [superadmin,admin,allowed]=await Promise.all([isSuperadmin().catch(()=>false),isAdmin().catch(()=>false),Promise.all(["admin_dashboard","products","inventory","orders","customer_details","user_management","platform_controls","audit_logs","own_orders"].map(p=>hasPageAccess(p).then(v=>[p,v]).catch(()=>[p,false])))]);
   const access=Object.fromEntries(allowed);
   let role="Customer";
-  if(superadmin){role="Super Admin";$("controlCenterLink")?.classList.remove("hide");}else{$("controlCenterLink")?.classList.add("hide");}
-  else if(access.inventory&&!access.products)role="Storekeeper";
-  else if(admin||access.admin_dashboard)role="Store Admin";
-  else if(access.own_orders)role="Customer";
+  if(superadmin){role="Super Admin";$("controlCenterLink")?.classList.remove("hide");}
+  else { $("controlCenterLink")?.classList.add("hide"); if(access.inventory&&!access.products)role="Storekeeper"; else if(admin||access.admin_dashboard)role="Store Admin"; else if(access.own_orders)role="Customer"; }
   const roleTags=tag(role,"role");
   const shortcuts=pageLinks.filter(x=>(superadmin||access.admin_dashboard)&& (superadmin||access[x.page])).map(x=>tag(x.label,"nav",x.href)).join("");
   let statuses="";
