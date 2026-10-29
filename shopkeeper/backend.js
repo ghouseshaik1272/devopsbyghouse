@@ -19,8 +19,8 @@ if (supabase) {
 function ready(){if(!configured)throw new Error("Supabase is not configured yet. Follow SUPABASE_SETUP.md and add the project URL and publishable key to supabase-config.js.");}
 function signedIn(){ready();if(!currentUser)throw new Error("Please sign in first.");return currentUser;}
 async function rpcBool(name){signedIn();const {data,error}=await supabase.rpc(name);if(error)throw error;return data===true;}
-async function isAdmin(){return rpcBool("is_shopkeeper_admin");}
-async function isSuperadmin(){return rpcBool("is_shopkeeper_superadmin");}
+export async function isAdmin(){return rpcBool("is_shopkeeper_admin");}
+export async function isSuperadmin(){return rpcBool("is_shopkeeper_superadmin");}
 export async function hasPageAccess(page){
   signedIn();
   const valid=["storefront","customer_app","own_orders","admin_dashboard","products","inventory","orders","customer_details","user_management","coupons","platform_controls","audit_logs"];
