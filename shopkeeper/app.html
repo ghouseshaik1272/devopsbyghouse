@@ -4,7 +4,7 @@
 <dialog id="authDialog" style="border:0;border-radius:16px;padding:24px;width:min(420px,calc(100% - 24px));box-shadow:0 20px 80px #0003"><form method="dialog"><button style="float:right" class="btn">Close</button></form><h2 id="authTitle">Sign in</h2><p class="muted">Sign in with an account invited and approved by the Shopkeeper Superadmin. <a href="./?request=account">Request account access</a> if you are new.</p><label class="field hide" id="nameWrap">Name<input id="authName" autocomplete="name"></label><label class="field">Email<input id="authEmail" type="email" autocomplete="email" required></label><label class="field">Password<input id="authPassword" type="password" autocomplete="current-password" minlength="8" required></label><div class="bottom"><button class="btn dark" id="authSubmit" type="button">Sign in</button><a class="btn" href="./?request=account" style="text-decoration:none">Request access</a></div><button class="btn" id="reset" type="button" style="margin-top:8px">Send password reset</button><div id="authStatus" class="status hide"></div></dialog>
 <script type="module">
 import {configured,auth,db,onAuthStateChanged,signIn,logout,getActiveProducts,createOrder,listMyOrders,trackCartEvent} from "./backend.js";
-const $=id=>document.getElementById(id);let products=[],cart=new Map(),user=null;
+const $=id=>document.getElementById(id);let products=[],cart=new Map(),user=null,catalogLoaded=false;
 const say=(id,msg)=>{$(id).textContent=msg;$(id).classList.remove("hide")};const money=n=>"₹"+Number(n||0).toLocaleString("en-IN",{maximumFractionDigits:2});
 function renderProducts(){const q=$("search").value.trim().toLowerCase(),cat=$("category").value;const rows=products.filter(p=>(!cat||p.category===cat)&&String(p.name||"").toLowerCase().includes(q));$("products").innerHTML=rows.map(p=>'<article class="product"><div class="emoji">'+(p.emoji||"🛍️")+'</div><h3>'+esc(p.name)+'</h3><div class="muted">'+esc(p.category||"Everyday")+' · '+esc(p.unit||"item")+'</div><div class="bottom"><span class="price">'+money(p.price)+'</span><button class="btn lime" data-add="'+p.id+'">Add +</button></div></article>').join("")||'<div class="muted">No active products found. An administrator must add products to the Firestore catalogue.</div>'}
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
@@ -14,9 +14,9 @@ const pageLinks=[
  {page:"inventory",label:"Inventory",href:"admin.html#products"},
  {page:"orders",label:"Orders",href:"admin.html#orders"},
  {page:"customer_details",label:"Customers",href:"admin.html#customers"},
- {page:"orders",label:"Notifications",href:"superadmin.html#notifications"},
- {page:"platform_controls",label:"Settings",href:"superadmin.html#settings"},
- {page:"audit_logs",label:"Reports",href:"superadmin.html#audit"}
+ {page:"orders",label:"Notifications",href:"superadmin.html#auditPanel"},
+ {page:"platform_controls",label:"Settings",href:"superadmin.html#platformPanel"},
+ {page:"audit_logs",label:"Reports",href:"superadmin.html#auditPanel"}
 ];
 function tag(label,kind="nav",href="",count=null){const content=esc(label)+(count===null?"":' <span class="count">'+count+'</span>');return href?'<a class="tag '+kind+'" href="'+href+'">'+content+'</a>':'<span class="tag '+kind+'">'+content+'</span>'}
 async function renderShopkeeperTags(){
@@ -33,7 +33,7 @@ async function renderShopkeeperTags(){
   const roleTags=tag(role,"role");
   const shortcuts=pageLinks.filter(x=>superadmin||access[x.page]).map(x=>tag(x.label,"nav",x.href)).join("");
   let statuses="";
-  if(products.length||configured){
+  if(catalogLoaded){
    const low=products.filter(p=>Number(p.stock)<=5).length;
    statuses+=tag("Low Stock","metric","",low);
    if(access.orders||superadmin){try{const orders=await adminListOrders();statuses+=tag("Pending Orders","metric","",orders.filter(o=>o.status==="pending").length)}catch{}}
@@ -45,7 +45,7 @@ async function renderShopkeeperTags(){
 }
 async function trackActivity(eventType){if(!user)return;const rows=[...cart.values()];try{await trackCartEvent({eventType,itemsCount:rows.reduce((s,x)=>s+x.quantity,0),cartValue:rows.reduce((s,x)=>s+x.price*x.quantity,0)});}catch(e){console.warn("Cart activity tracking unavailable:",e.message)}}
 function renderCart(){const rows=[...cart.values()];$("cartcount").textContent=rows.reduce((s,x)=>s+x.quantity,0)+" items";$("cart").innerHTML=rows.map(x=>'<div class="item"><div class="emoji">'+esc(x.emoji||"🛍️")+'</div><div class="grow"><b>'+esc(x.name)+'</b><div class="muted">'+money(x.price)+'</div></div><div class="qty"><button data-q="'+x.id+'" data-d="-1">−</button>'+x.quantity+'<button data-q="'+x.id+'" data-d="1">+</button></div></div>').join("")||'<div class="muted">Your cart is empty.</div>';$("subtotal").textContent=money(rows.reduce((s,x)=>s+x.price*x.quantity,0))}
-async function load(){if(!configured){$("backendNotice").textContent="Supabase is not configured. Follow SUPABASE_SETUP.md and add the project URL and publishable key to supabase-config.js before loading live products or orders.";products=[];renderProducts();return}try{products=await getActiveProducts();renderProducts();$("backendNotice").textContent="Supabase connected. Product catalogue loaded from the database. Online payments are disabled; cash-on-delivery orders only."; }catch(e){$("backendNotice").textContent="Backend connection error: "+e.message+" — check Supabase setup and database policies.";}}
+async function load(){if(!configured){$("backendNotice").textContent="Supabase is not configured. Follow SUPABASE_SETUP.md and add the project URL and publishable key to supabase-config.js before loading live products or orders.";products=[];catalogLoaded=false;renderProducts();renderShopkeeperTags();return}try{products=await getActiveProducts();catalogLoaded=true;renderProducts();$("backendNotice").textContent="Supabase connected. Product catalogue loaded from the database. Online payments are disabled; cash-on-delivery orders only."; }catch(e){$("backendNotice").textContent="Backend connection error: "+e.message+" — check Supabase setup and database policies.";}}
 $("products").addEventListener("click",e=>{const b=e.target.closest("[data-add]");if(!b)return;const p=products.find(x=>x.id===b.dataset.add);if(!p)return;if(!user){say("status","Sign in with a Superadmin-approved account to add items.");$("authDialog").showModal();return;}const old=cart.get(p.id);cart.set(p.id,{...p,quantity:(old?.quantity||0)+1});renderCart();trackActivity("item_added")});$("cart").addEventListener("click",e=>{const b=e.target.closest("[data-q]");if(!b)return;const x=cart.get(b.dataset.q);if(!x)return;x.quantity+=Number(b.dataset.d);if(x.quantity<1)cart.delete(x.id);renderCart();trackActivity(x.quantity<1?"item_removed":(Number(b.dataset.d)>0?"item_added":"item_removed"))});$("search").oninput=renderProducts;$("category").onchange=renderProducts;$("reload").onclick=load;
 $("accountBtn").onclick=()=>{$("authStatus").classList.add("hide");$("authDialog").showModal()};
 $("authSubmit").onclick=async()=>{try{const email=$("authEmail").value,password=$("authPassword").value;await signIn({email,password});$("authDialog").close();}catch(e){say("authStatus",e.message)}};
