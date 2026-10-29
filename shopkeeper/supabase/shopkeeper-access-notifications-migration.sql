@@ -178,6 +178,10 @@ grant execute on function public.shopkeeper_mark_notifications_read() to authent
 
 -- Replace broad admin data policies with page-grant-aware policies.
 drop policy if exists "Admins manage products" on public.shopkeeper_products;
+drop policy if exists "Public can view active products" on public.shopkeeper_products;
+create policy "Public can view active products" on public.shopkeeper_products for select to anon using (active = true);
+create policy "Authenticated users view permitted products" on public.shopkeeper_products for select to authenticated
+ using (active = true or public.shopkeeper_has_page_access('products'));
 create policy "Authorized page users manage products" on public.shopkeeper_products for all to authenticated
  using (public.shopkeeper_has_page_access('products'))
  with check (public.shopkeeper_has_page_access('products'));
