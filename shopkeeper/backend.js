@@ -36,8 +36,18 @@ export async function adminListOrders(){if(!(await isAdmin()))throw new Error("A
 export async function saveProduct(product){if(!(await isAdmin()))throw new Error("Administrator access is required.");const name=String(product.name||"").trim(),price=Number(product.price),stock=Number(product.stock);if(!name||name.length>120||!Number.isFinite(price)||price<0||!Number.isInteger(stock)||stock<0)throw new Error("Enter a product name, valid price and whole-number stock.");const data={name,category:String(product.category||"Food & Groceries").slice(0,80),price,stock,unit:String(product.unit||"item").slice(0,30),emoji:String(product.emoji||"🛍️").slice(0,8),tag:String(product.tag||"").slice(0,80),description:String(product.description||"").slice(0,250),active:product.active!==false,updated_at:new Date().toISOString()};let result;if(product.id)result=await supabase.from("shopkeeper_products").update(data).eq("id",product.id).select("id").single();else result=await supabase.from("shopkeeper_products").insert(data).select("id").single();if(result.error)throw result.error;return result.data.id;}
 export async function setProductActive(id,active){if(!(await isAdmin()))throw new Error("Administrator access is required.");const {error}=await supabase.from("shopkeeper_products").update({active:!!active,updated_at:new Date().toISOString()}).eq("id",id);if(error)throw error;}
 export async function updateOrderStatus(id,status){if(!(await isAdmin()))throw new Error("Administrator access is required.");if(!["pending","confirmed","packed","out_for_delivery","delivered","cancelled"].includes(status))throw new Error("Invalid order status.");const {error}=await supabase.from("shopkeeper_orders").update({status,updated_at:new Date().toISOString()}).eq("id",id);if(error)throw error;}
+export async function submitAccountRequest({fullName,email,phone,message=""}) {
+  ready();
+  const name=String(fullName||"").trim(), mail=String(email||"").trim().toLowerCase(), tel=String(phone||"").trim(), note=String(message||"").trim();
+  if(name.length<2||name.length>100) throw new Error("Enter your full name (2–100 characters).");
+  if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(mail)||mail.length>254) throw new Error("Enter a valid email address.");
+  if(tel.length>30||note.length>1000) throw new Error("Phone or message is too long.");
+  const {error}=await supabase.from("shopkeeper_account_requests").insert({full_name:name,email:mail,phone:tel,message:note});
+  if(error) throw error;
+  return true;
+}
 export async function listCustomerRegistrations(){if(!(await isSuperadmin()))throw new Error("Superadmin access is required.");const {data,error}=await supabase.from("shopkeeper_customer_access").select("*").order("created_at",{ascending:false});if(error)throw error;return data||[];}
 export async function decideCustomerRegistration(userId,status){if(!(await isSuperadmin()))throw new Error("Superadmin access is required.");if(!["approved","rejected","suspended","pending"].includes(status))throw new Error("Invalid registration status.");const {error}=await supabase.from("shopkeeper_customer_access").update({status,updated_at:new Date().toISOString()}).eq("user_id",userId);if(error)throw error;}
 export {supabase as db, supabase as auth};
-window.ShopkeeperBackend={configured,get currentUser(){return currentUser;},signUp,signIn,resetPassword,logout,getActiveProducts,createOrder,listMyOrders,listAllProducts,adminListOrders,saveProduct,setProductActive,updateOrderStatus,listCustomerRegistrations,decideCustomerRegistration};
+window.ShopkeeperBackend={configured,get currentUser(){return currentUser;},signUp,signIn,resetPassword,logout,getActiveProducts,createOrder,listMyOrders,listAllProducts,adminListOrders,saveProduct,setProductActive,updateOrderStatus,listCustomerRegistrations,decideCustomerRegistration,submitAccountRequest};
 window.dispatchEvent(new CustomEvent("shopkeeper:backend-ready",{detail:{configured}}));
