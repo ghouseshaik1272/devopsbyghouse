@@ -43,6 +43,36 @@ create policy "Customers see own access status" on public.shopkeeper_customer_ac
 drop policy if exists "Superadmins manage customer access" on public.shopkeeper_customer_access;
 create policy "Superadmins manage customer access" on public.shopkeeper_customer_access for all to authenticated using (public.is_shopkeeper_superadmin()) with check (public.is_shopkeeper_superadmin());
 
+-- Admins can view/update ordinary customer access records, never superadmin records.
+drop policy if exists "Admins view normal customer access" on public.shopkeeper_customer_access;
+create policy "Admins view normal customer access"
+  on public.shopkeeper_customer_access for select to authenticated
+  using (
+    public.is_shopkeeper_admin()
+    and not exists (
+      select 1 from public.shopkeeper_superadmins s
+      where s.user_id = shopkeeper_customer_access.user_id
+    )
+  );
+
+drop policy if exists "Admins update normal customer access" on public.shopkeeper_customer_access;
+create policy "Admins update normal customer access"
+  on public.shopkeeper_customer_access for update to authenticated
+  using (
+    public.is_shopkeeper_admin()
+    and not exists (
+      select 1 from public.shopkeeper_superadmins s
+      where s.user_id = shopkeeper_customer_access.user_id
+    )
+  )
+  with check (
+    public.is_shopkeeper_admin()
+    and not exists (
+      select 1 from public.shopkeeper_superadmins s
+      where s.user_id = shopkeeper_customer_access.user_id
+    )
+  );
+
 create or replace function public.is_shopkeeper_customer_approved()
 returns boolean language sql stable security definer set search_path = ''
 as $$ select exists(select 1 from public.shopkeeper_customer_access a where a.user_id = (select auth.uid()) and a.status = 'approved'); $$;
