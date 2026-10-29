@@ -1,0 +1,47 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    // Set custom claims from a trusted Admin SDK environment. Never use a public
+    // user-editable profile field to grant administrator privileges.
+    function isAdmin() {
+      return signedIn() && request.auth.token.shopkeeperAdmin == true;
+    }
+    match /shopkeeperProducts/{productId} {
+      allow read: if resource.data.active == true || isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+    match /shopkeeperOrders/{orderId} {
+      allow create: if signedIn()
+        && request.resource.data.customerUid == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.paymentStatus == 'unpaid'
+        && request.resource.data.items is list
+        && request.resource.data.items.size() > 0
+        && request.resource.data.items.size() <= 50
+        && request.resource.data.total is number
+        && request.resource.data.total >= 0
+        && request.resource.data.total <= 1000000
+        && request.resource.data.keys().hasOnly([
+          'customerUid','customerEmail','customerName','phone','address','area',
+          'items','subtotal','deliveryFee','total','status','paymentStatus',
+          'paymentMethod','createdAt'
+        ]);
+      allow read: if isAdmin() || (signedIn() && resource.data.customerUid == request.auth.uid);
+      // Client-side users cannot change order status, totals, or payment state.
+      allow update, delete: if isAdmin();
+    }
+    match /shopkeeperUsers/{uid} {
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['displayName','email','createdAt'])
+        && request.resource.data.email == request.auth.token.email;
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow update, delete: if isAdmin();
+    }
+    match /shopkeeperSettings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /{document=**} { allow read, write: if false; }
+  }
+}
